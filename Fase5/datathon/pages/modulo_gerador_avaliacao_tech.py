@@ -1,13 +1,13 @@
 import pandas as pd
 import streamlit as st
 import json
-import apoio_tech as at
+from apoio_tech import generate
 import os
 import markdown
 from fpdf import FPDF
 import re
+from App import gerar_menu_lateral
 
-st.set_page_config(layout="wide")
 COR_NAO_SEI = "#D3D3D3"
 COR_ERROU = "#FF0000"
 COR_INCOMPLETA = "#FFA500"
@@ -26,7 +26,7 @@ METODO_ENTRADA_ESTRUTURADO = "Usar Campos Estruturados"
 METODO_ENTRADA_TEXTO_LIVRE = "Descrever a Vaga Livremente"
 METODO_ENTRADA_SELECIONAR_VAGA = "Selecionar Vagas"
 TIPO_PERGUNTA_DESAFIO = "desafio"
-
+gerar_menu_lateral()
 @st.cache_data(ttl=3600)
 def carregar_lista_json(caminho_arquivo):
     """
@@ -69,7 +69,7 @@ def carregar_dados_api(prompt_api):
     """
     resposta_api_bruta = None
     with st.spinner(f"Gerando perguntas com base em: '{prompt_api[:100]}...'"):
-        resposta_api_bruta = at.generate(prompt_api)
+        resposta_api_bruta = generate(prompt_api)
         print(f"Prompt enviado para API: {prompt_api}")
 
     print(f"Resposta da API: {resposta_api_bruta}")
@@ -231,8 +231,7 @@ def exibir_quiz():
 
     with tab_sistema:
         
-        diretorio_script = os.path.dirname(__file__)
-        diretorio_script = f"{diretorio_script}/dataset"
+        diretorio_script = f"{os.path.basename(__file__)}/../dataset"        
         base_profissoes = carregar_lista_json(os.path.join(diretorio_script, "profissoes.json"))
         base_linguagens = carregar_lista_json(os.path.join(diretorio_script, "linguagens.json"))
         base_senioridades = carregar_lista_json(os.path.join(diretorio_script, "senioridades.json"))        
@@ -775,5 +774,6 @@ if __name__ == "__main__":
     if 'permitir_codigo_na_resposta' not in st.session_state: st.session_state.permitir_codigo_na_resposta = False
     if 'max_perguntas_padrao' not in st.session_state: st.session_state.max_perguntas_padrao = 20
     
-
     exibir_quiz()
+  
+    
