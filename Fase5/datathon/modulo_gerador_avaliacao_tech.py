@@ -144,10 +144,18 @@ class PDF(FPDF):
             print(f"Erro ao definir footer do PDF: {e}")
 # --- Função Principal da Aplicação Streamlit ---
 
-def atualizar_limite_perguntas():
-    print("chamou callback")
+def atualizar_limite_perguntas():    
     """Callback para ajustar o número de perguntas ao mudar a permissão de código."""
     permitir_codigo = st.session_state.get('check_codigo_resposta', False) # Pega o estado ATUAL do checkbox
+    print(permitir_codigo)
+    if permitir_codigo:
+        st.session_state.max_perguntas_padrao = 10
+        quantidade_desejada_atual = st.session_state.get('numero_perguntas_desejadas', False)
+        if quantidade_desejada_atual > 10:
+            st.session_state.numero_perguntas_desejadas = 10
+    else:
+        st.session_state.max_perguntas_padrao = 20
+
     
 
 
@@ -379,28 +387,32 @@ def exibir_quiz():
 
         with coluna_opcoes2:
             # Checkbox para incluir pergunta desafio
-            if 'incluir_pergunta_desafio' not in st.session_state: st.session_state.incluir_pergunta_desafio = False
+            # Use a mesma chave para inicialização e para o widget
+            if 'check_desafio' not in st.session_state: st.session_state.check_desafio = False
             st.write("") # Espaçamento vertical
             st.write("") # Espaçamento vertical
-            st.session_state.incluir_pergunta_desafio = st.checkbox(
+            st.checkbox( # Remova a atribuição direta para st.session_state
                 "Incluir Pergunta Desafio?",
-                value=st.session_state.incluir_pergunta_desafio,
-                key='check_desafio',
+                value=st.session_state.check_desafio, # Use a chave 'check_desafio' para o valor
+                key='check_desafio', # Mantenha a chave
                 help="Adiciona uma pergunta sobre um problema técnico com 3 possíveis soluções."
             )
 
         with coluna_opcoes3:
             # Checkbox para permitir código nas respostas
-            if 'permitir_codigo_na_resposta' not in st.session_state: st.session_state.permitir_codigo_na_resposta = False
+            # Use a mesma chave para inicialização e para o widget
+            if 'check_codigo_resposta' not in st.session_state: st.session_state.check_codigo_resposta = False
             st.write("") # Espaçamento vertical
             st.write("") # Espaçamento vertical
-            st.session_state.permitir_codigo_na_resposta = st.checkbox(
+            st.checkbox( # Remova a atribuição direta para st.session_state
                 "Permitir Código nas Respostas?",
-                value=st.session_state.permitir_codigo_na_resposta,
-                key='check_codigo_resposta',
+                value=st.session_state.check_codigo_resposta, # Use a chave 'check_codigo_resposta' para o valor
+                key='check_codigo_resposta', # Mantenha a chave
                 on_change=atualizar_limite_perguntas,
                 help="Marque se deseja que as respostas esperadas possam incluir exemplos de código."
             )
+            if st.session_state.check_codigo_resposta:
+                st.warning("Limite de 10 perguntas padrão quando o código é permitido nas respostas.")
 
 
         # --- Botão Gerar Perguntas (código existente inalterado) ---
@@ -410,8 +422,8 @@ def exibir_quiz():
         if st.button("Gerar Perguntas da Avaliação", type="primary", disabled=botao_gerar_desabilitado):
             # O código dentro deste if só executa se o botão não estiver desabilitado
             numero_perguntas_padrao = st.session_state.numero_perguntas_desejadas
-            incluir_desafio = st.session_state.incluir_pergunta_desafio
-            permitir_codigo = st.session_state.permitir_codigo_na_resposta
+            incluir_desafio = st.session_state.check_desafio # Leia o valor da chave correta
+            permitir_codigo = st.session_state.check_codigo_resposta # Leia o valor da chave correta
             prompt_para_api = ""
             entrada_valida = True
             informacao_vaga = ""
