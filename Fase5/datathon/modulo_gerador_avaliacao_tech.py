@@ -476,7 +476,7 @@ def exibir_quiz():
 
                 if incluir_desafio:
                     prompt_para_api = (
-                        f"Gere {numero_perguntas_padrao} perguntas técnicas padrão E 1 pergunta desafio de problema/solução "
+                        f"Gere {numero_perguntas_padrao} perguntas técnicas padrão e com mais 1 pergunta desafio de problema/solução "
                         f"{informacao_vaga}. {instrucao_codigo} "
                         f"A pergunta desafio deve ter um problema como 'pergunta' e 3 soluções como 'resposta'. "
                         f"Siga o formato JSON especificado nas instruções do sistema."
@@ -619,18 +619,20 @@ def exibir_quiz():
                 # Exibe a pergunta/problema
                 st.info(f"{i+1}. {q.get('pergunta', 'Pergunta/Problema não encontrado')}")
 
-                # Exibe a resposta esperada/soluções
+                # Exibe a resposta esperada/soluções               
                 st.markdown(f"**Resposta Esperada:**")
                 resposta_bruta = q.get('resposta', 'Resposta/Soluções não encontrada')
 
-                # --- MODIFICAÇÃO: Passa o Markdown bruto diretamente para st.markdown dentro do div ---
+                 # Espaçamento vertical
+                
                 try:
                     # st.markdown pode renderizar markdown diretamente, incluindo code blocks
-                    st.markdown(f'<div class="resposta-destaque">{resposta_bruta}</div>', unsafe_allow_html=True)
+                    st.markdown(resposta_bruta, unsafe_allow_html=True)
                 except Exception as e:
                     print(f"Erro ao renderizar resposta Markdown: {e}")
                     # Fallback para texto simples pré-formatado dentro do div estilizado
                     st.markdown(f'<div class="resposta-destaque"><pre>{resposta_bruta}</pre></div>', unsafe_allow_html=True)
+                
                 # --- FIM DA MODIFICAÇÃO ---
 
                 # Define as opções de botões de avaliação
