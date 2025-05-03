@@ -43,7 +43,7 @@ def carregar_lista_json(caminho_arquivo):
 
     Returns:
         list: Uma lista de strings carregada do JSON, ou uma lista vazia em caso de erro.
-    """
+    """    
     try:
         with open(caminho_arquivo, 'r', encoding='utf-8') as f:
             dados = json.load(f)
@@ -74,8 +74,19 @@ def carregar_dados_api(prompt_api):
         list | None: Uma lista de dicionários representando as perguntas e respostas
                      se a análise for bem-sucedida, caso contrário None.
     """
-    st.info(f"Gerando perguntas com base em: '{prompt_api[:100]}...'")
-    resposta_api_bruta = at.generate(prompt_api)
+    
+    
+    resposta_api_bruta = None
+    # Gerar animacao enquanto carrega o download da api
+    with st.spinner(f"Gerando perguntas com base em: '{prompt_api[:100]}...'"):
+        # Chama a API com o prompt fornecido
+        # A função at.generate() deve ser definida no módulo apoio_tech.py
+        # e deve lidar com a chamada à API Gemini.
+        # Aqui, apenas chamamos a função e retornamos o resultado.
+        resposta_api_bruta = at.generate(prompt_api)
+        print(f"Prompt enviado para API: {prompt_api}")
+
+    
     print(f"Resposta da API: {resposta_api_bruta}")
     if not resposta_api_bruta:
         st.error("A API não retornou resposta.")
@@ -131,6 +142,13 @@ class PDF(FPDF):
             self.cell(0, 10, f'Página {self.page_no()}', 0, 0, 'C') # Centraliza número da página
         except Exception as e:
             print(f"Erro ao definir footer do PDF: {e}")
+# --- Função Principal da Aplicação Streamlit ---
+
+def atualizar_limite_perguntas():
+    print("chamou callback")
+    """Callback para ajustar o número de perguntas ao mudar a permissão de código."""
+    permitir_codigo = st.session_state.get('check_codigo_resposta', False) # Pega o estado ATUAL do checkbox
+    
 
 
 def gerar_pdf(titulo, itens_pdf):
@@ -232,6 +250,12 @@ def exibir_quiz():
     """, unsafe_allow_html=True)
     # --- Fim do CSS das abas ---
 
+    # Inicializa estados para controle dos PDFs sob demanda
+    if 'pdf_perguntas_data' not in st.session_state: st.session_state.pdf_perguntas_data = None
+    if 'pdf_respostas_data' not in st.session_state: st.session_state.pdf_respostas_data = None
+    if 'pdf_perguntas_pronto' not in st.session_state: st.session_state.pdf_perguntas_pronto = False
+    if 'pdf_respostas_pronto' not in st.session_state: st.session_state.pdf_respostas_pronto = False
+
     # Cria as abas
     
     tab_sistema, tab_documentacao = st.tabs(["Sistema", "Documentação"])
@@ -241,9 +265,10 @@ def exibir_quiz():
         # Carregar opções dos arquivos JSON
         # ... (código de carregamento inalterado) ...
         diretorio_script = os.path.dirname(__file__)
+        diretorio_script = f"{diretorio_script}/dataset"
         base_profissoes = carregar_lista_json(os.path.join(diretorio_script, "profissoes.json"))
         base_linguagens = carregar_lista_json(os.path.join(diretorio_script, "linguagens.json"))
-        base_senioridades = carregar_lista_json(os.path.join(diretorio_script, "senioridades.json"))
+        base_senioridades = carregar_lista_json(os.path.join(diretorio_script, "senioridades.json"))        
 
         opcoes_profissoes = base_profissoes + [OPCAO_OUTRO_ROTULO]
         opcoes_linguagens = base_linguagens + [OPCAO_OUTRO_ROTULO]
@@ -340,11 +365,15 @@ def exibir_quiz():
 
         with coluna_opcoes1:
             # Input para número de perguntas padrão
+            # --- MODIFICAÇÃO: Troca selectbox por slider ---
             if 'numero_perguntas_desejadas' not in st.session_state: st.session_state.numero_perguntas_desejadas = 10
-            st.session_state.numero_perguntas_desejadas = st.number_input(
-                "Perguntas Padrão:",
-                min_value=3, max_value=30, value=st.session_state.numero_perguntas_desejadas,
-                step=1, key='num_perguntas',
+            # opcoes_numero_perguntas = list(range(3, 31)) # Não é mais necessário
+            st.session_state.numero_perguntas_desejadas = st.slider(
+                "Quantidade de perguntas:",
+                min_value=3, max_value=st.session_state.max_perguntas_padrao, # Define o intervalo do slider
+                value=st.session_state.numero_perguntas_desejadas, # Valor inicial/atual
+                step=1, # Incremento de 1
+                key='num_perguntas',
                 help="Número de perguntas no formato padrão (pergunta/resposta/nível)."
             )
 
@@ -369,6 +398,7 @@ def exibir_quiz():
                 "Permitir Código nas Respostas?",
                 value=st.session_state.permitir_codigo_na_resposta,
                 key='check_codigo_resposta',
+                on_change=atualizar_limite_perguntas,
                 help="Marque se deseja que as respostas esperadas possam incluir exemplos de código."
             )
 
@@ -552,10 +582,6 @@ def exibir_quiz():
             respostas_avaliacao = st.session_state.respostas_avaliacao
             opcoes_selecionadas = st.session_state.opcoes_selecionadas
 
-            # --- MODIFICAÇÃO: Instancia o parser Markdown aqui ---
-            markdown_parser = markdown.Markdown(extensions=['fenced_code', 'codehilite'])
-            # --- FIM DA MODIFICAÇÃO ---
-
             def atualizar_resposta(indice_pergunta, pontuacao, resposta_avaliacao, chave_botao):
                 """
                 Atualiza o estado da sessão para uma pergunta específica quando um
@@ -585,17 +611,13 @@ def exibir_quiz():
                 st.markdown(f"**Resposta Esperada:**")
                 resposta_bruta = q.get('resposta', 'Resposta/Soluções não encontrada')
 
-                # --- MODIFICAÇÃO: Converte para HTML e usa st.markdown com div estilizado ---
+                # --- MODIFICAÇÃO: Passa o Markdown bruto diretamente para st.markdown dentro do div ---
                 try:
-                    resposta_html = markdown_parser.convert(resposta_bruta)
-                    # Garante quebras de linha dentro de <pre><code> sejam <br>
-                    resposta_html_com_br = re.sub(r'(<pre.*?><code.*?>)(.*?)(</code></pre>)',
-                                               lambda m: m.group(1) + m.group(2).replace('\n', '<br>\n') + m.group(3),
-                                               resposta_html, flags=re.DOTALL)
-                    st.markdown(f'<div class="resposta-destaque">{resposta_html_com_br}</div>', unsafe_allow_html=True)
+                    # st.markdown pode renderizar markdown diretamente, incluindo code blocks
+                    st.markdown(f'<div class="resposta-destaque">{resposta_bruta}</div>', unsafe_allow_html=True)
                 except Exception as e:
-                    print(f"Erro ao converter/renderizar resposta Markdown como HTML: {e}")
-                    # Fallback para texto simples dentro do div estilizado
+                    print(f"Erro ao renderizar resposta Markdown: {e}")
+                    # Fallback para texto simples pré-formatado dentro do div estilizado
                     st.markdown(f'<div class="resposta-destaque"><pre>{resposta_bruta}</pre></div>', unsafe_allow_html=True)
                 # --- FIM DA MODIFICAÇÃO ---
 
@@ -621,8 +643,10 @@ def exibir_quiz():
                             st.rerun() # Recarrega para atualizar a aparência do botão
                 st.divider() # Linha divisória entre as perguntas
 
-            # Botão Calcular Resultado e Botões de Download PDF
-            # ... (código dos botões e geração de PDF inalterado) ...
+            # Botão Calcular Resultado e Botões de Geração/Download PDF
+            
+            st.subheader("O que deseja fazer agora?") 
+
             coluna_calcular, coluna_pdf1, coluna_pdf2 = st.columns(3) # Define 3 colunas de largura igual
 
             with coluna_calcular:
@@ -632,52 +656,108 @@ def exibir_quiz():
                 st.markdown('</div>', unsafe_allow_html=True)
                 if botao_calcular_clicado:
                     st.session_state['mostrar_resultados'] = True # Marca para exibir a seção de resultados
+                    # Opcional: Resetar estado dos PDFs ao calcular?
+                    # st.session_state.pdf_perguntas_pronto = False
+                    # st.session_state.pdf_respostas_pronto = False
+                    # st.session_state.pdf_perguntas_data = None
+                    # st.session_state.pdf_respostas_data = None
+                    st.rerun() # Recarrega para mostrar resultados
 
-            # Prepara dados para os PDFs
+            # Prepara dados para os PDFs (serão usados quando os botões "Preparar" forem clicados)
             perguntas_para_pdf = []
             respostas_para_pdf = []
-            for i, q in enumerate(perguntas):
-                texto_pergunta = q.get('pergunta', 'N/A')
-                texto_nivel = f"Nível: {q.get('nivel', 'N/A')}{' (Desafio)' if q.get('tipo') == TIPO_PERGUNTA_DESAFIO else ''}"
-                texto_resposta = q.get('resposta', 'N/A')
+            # Garante que as perguntas existem no estado da sessão antes de preparar os dados
+            if 'perguntas' in st.session_state and st.session_state.perguntas:
+                for i, q in enumerate(st.session_state.perguntas):
+                    texto_pergunta = q.get('pergunta', 'N/A')
+                    texto_nivel = f"Nível: {q.get('nivel', 'N/A')}{' (Desafio)' if q.get('tipo') == TIPO_PERGUNTA_DESAFIO else ''}"
+                    texto_resposta = q.get('resposta', 'N/A')
 
-                # Formato para PDF de Perguntas (apenas pergunta e espaço para resposta)
-                prefixo_perguntas_pdf = f"**{i+1}. Pergunta:** {texto_pergunta}\n"
-                perguntas_para_pdf.append({
-                     "prefix": prefixo_perguntas_pdf,
-                     "text": "Resposta:  <br><br><br><br><br><br><br><br><br>" # Espaço em branco com quebras de linha HTML
-                })
+                    # Formato para PDF de Perguntas (apenas pergunta e espaço para resposta)
+                    prefixo_perguntas_pdf = f"**{i+1}. Pergunta:** {texto_pergunta}\n"
+                    perguntas_para_pdf.append({
+                         "prefix": prefixo_perguntas_pdf,
+                         "text": "Resposta:  <br><br><br><br><br><br><br><br><br>" # Espaço em branco com quebras de linha HTML
+                    })
 
-                # Formato para PDF de Respostas (pergunta, nível e resposta esperada)
-                prefixo_respostas_pdf = f"**{i+1}. Pergunta:** {texto_pergunta}\n    *({texto_nivel})*" # Nível em itálico
-                respostas_para_pdf.append({
-                    "prefix": prefixo_respostas_pdf,
-                    "text": texto_resposta # Resposta com possível markdown
-                })
+                    # Formato para PDF de Respostas (pergunta, nível e resposta esperada)
+                    prefixo_respostas_pdf = f"**{i+1}. Pergunta:** {texto_pergunta}\n    *({texto_nivel})*" # Nível em itálico
+                    respostas_para_pdf.append({
+                        "prefix": prefixo_respostas_pdf,
+                        "text": texto_resposta # Resposta com possível markdown
+                    })
 
             with coluna_pdf1:
-                # Gera e oferece download do PDF de perguntas
-                dados_pdf_perguntas = gerar_pdf("Perguntas da Avaliação", perguntas_para_pdf)
-                st.download_button(
-                    label="Gerar PDF das Perguntas",
-                    data=bytes(dados_pdf_perguntas), # Garante que são bytes
-                    file_name="perguntas_avaliacao.pdf",
-                    mime="application/pdf",
-                    key="download_perguntas",
-                    use_container_width=True # Ocupa toda a largura da coluna
-                )
+                # Botão para PREPARAR o PDF de perguntas
+                st.markdown('<div id="container-botao-pdf">', unsafe_allow_html=True)
+                if st.button("Gerar PDF das Perguntas", key="prep_perguntas", use_container_width=True):
+                    with st.spinner("Gerando PDF das perguntas..."):
+                        if perguntas_para_pdf: # Verifica se há dados para gerar
+                            pdf_data = gerar_pdf("Perguntas da Avaliação", perguntas_para_pdf)
+                            if pdf_data:
+                                st.session_state.pdf_perguntas_data = pdf_data
+                                st.session_state.pdf_perguntas_pronto = True
+                                st.session_state.pdf_respostas_pronto = False # Garante que só um botão de download apareça por vez
+                                st.rerun() # Recarrega para mostrar o botão de download
+                            else:
+                                st.error("Falha ao gerar PDF das perguntas.")
+                                st.session_state.pdf_perguntas_pronto = False
+                        else:
+                            st.warning("Não há perguntas carregadas para gerar o PDF.")
+                            st.session_state.pdf_perguntas_pronto = False
+
+                # Botão de DOWNLOAD (condicional)
+                if st.session_state.get('pdf_perguntas_pronto', False) and st.session_state.get('pdf_perguntas_data'):
+                    st.download_button(
+                        label="⬇️ Baixar PDF das Perguntas",
+                        data=bytes(st.session_state.pdf_perguntas_data), # Garante que são bytes
+                        file_name="perguntas_avaliacao.pdf",
+                        mime="application/pdf",
+                        key="download_perguntas_final",
+                        use_container_width=True,
+                    )
+                st.markdown('</div>', unsafe_allow_html=True)    
+                    # Opcional: Botão para ocultar o download se não quiser mais baixar
+                    # if st.button("Ocultar Download Perguntas", key="cancel_pdf_perguntas", use_container_width=True):
+                    #     st.session_state.pdf_perguntas_pronto = False
+                    #     st.session_state.pdf_perguntas_data = None
+                    #     st.rerun()
 
             with coluna_pdf2:
-                # Gera e oferece download do PDF de respostas
-                dados_pdf_respostas = gerar_pdf("Respostas Esperadas da Avaliação", respostas_para_pdf)
-                st.download_button(
-                    label="Gerar PDF das Respostas",
-                    data=bytes(dados_pdf_respostas), # Garante que são bytes
-                    file_name="respostas_avaliacao.pdf",
-                    mime="application/pdf",
-                    key="download_respostas",
-                    use_container_width=True # Ocupa toda a largura da coluna
-                )
+                # Botão para PREPARAR o PDF de respostas
+                st.markdown('<div id="container-botao-pdf">', unsafe_allow_html=True)
+                if st.button("Gerar PDF das das Perguntas com Respostas", key="prep_respostas", use_container_width=True):
+                    with st.spinner("Gerando PDF das respostas..."):
+                        if respostas_para_pdf: # Verifica se há dados para gerar
+                            pdf_data = gerar_pdf("Respostas Esperadas da Avaliação", respostas_para_pdf)
+                            if pdf_data:
+                                st.session_state.pdf_respostas_data = pdf_data
+                                st.session_state.pdf_respostas_pronto = True
+                                st.session_state.pdf_perguntas_pronto = False # Garante que só um botão de download apareça por vez
+                                st.rerun() # Recarrega para mostrar o botão de download
+                            else:
+                                st.error("Falha ao gerar PDF das respostas.")
+                                st.session_state.pdf_respostas_pronto = False
+                        else:
+                             st.warning("Não há respostas carregadas para gerar o PDF.")
+                             st.session_state.pdf_respostas_pronto = False
+
+                # Botão de DOWNLOAD (condicional)
+                if st.session_state.get('pdf_respostas_pronto', False) and st.session_state.get('pdf_respostas_data'):
+                    st.download_button(
+                        label="⬇️ Baixar PDF das Perguntas e Respostas",
+                        data=bytes(st.session_state.pdf_respostas_data), # Garante que são bytes
+                        file_name="respostas_avaliacao.pdf",
+                        mime="application/pdf",
+                        key="download_respostas_final",
+                        use_container_width=True,
+                    )
+                st.markdown('</div>', unsafe_allow_html=True)
+                    # Opcional: Botão para ocultar o download
+                    # if st.button("Ocultar Download Respostas", key="cancel_pdf_respostas", use_container_width=True):
+                    #     st.session_state.pdf_respostas_pronto = False
+                    #     st.session_state.pdf_respostas_data = None
+                    #     st.rerun()
 
 
             # Exibição do Resultado (Condicional, se o botão 'Calcular' foi clicado)
@@ -836,6 +916,7 @@ if __name__ == "__main__":
     if 'quiz_gerado' not in st.session_state: st.session_state.quiz_gerado = False
     if 'incluir_pergunta_desafio' not in st.session_state: st.session_state.incluir_pergunta_desafio = False
     if 'permitir_codigo_na_resposta' not in st.session_state: st.session_state.permitir_codigo_na_resposta = False
+    if 'max_perguntas_padrao' not in st.session_state: st.session_state.max_perguntas_padrao = 20
     # 'mostrar_resultados' é controlado pelo clique do botão, não inicializado aqui
 
     exibir_quiz() # Chama a função principal para renderizar a página
