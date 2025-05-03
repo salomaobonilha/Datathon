@@ -29,7 +29,7 @@ def generate(texto):
 
     print(f"Texto enviado para API (prompt usuário): {texto}")
 
-    model_name = "gemini-2.0-flash"
+    model_name = "gemini-1.5-flash"
 
     
     system_instruction_text = """Você é um especialista na criação de perguntas e respostas para provas técnicas de tecnologia. O prompt do usuário especificará:
@@ -51,7 +51,7 @@ def generate(texto):
                                 
                                 *   **Bônus (se solicitada):** Deve ter:
                                     *   Um problema técnico comum relacionado às tecnologias/área da vaga.
-                                    *   a resposta ser deve uma string contendo até 3 possíveis soluções concisas para o problema (ex: "1. Solução A...\n2. Solução B...\n3. Solução C...").
+                                    *   a resposta ser deve uma string contendo até 3 possíveis soluções concisas para o problema, (ex: "1. Solução A...\n2. Solução B...\n3. Solução C...").
                                     *   Sugerido como "Intermediário/Avançado".
                                     * DEVE incluir um novo atributo "tipo": "desafio" no JSON,se a pergunta bônus/desafio não for solicitada, deve ser omitida do JSON.
                                 deve manter a mesma estrutura de perguntas padrão, mas com foco em resolução de problemas.                                    
@@ -73,7 +73,9 @@ def generate(texto):
                                 *   Formate exemplos de código como blocos de código dentro da string de resposta.
                                 *   Não use markdown de título/âncora (#) nas respostas.
                                 *   coloque em negritos nas respostas o destaque que deve ser levado em consideração.
+                                *   Quando for preciso enumerar itens, use números (1, 2, 3) ou letras (a, b, c) quebre a linha entre os itens.
                                 *   na quebra de linha use duas quebras de linha (ex: \n\n) para separar os itens.
+                                *   Gerar perguntas e respostas em utf-8
                                 *   A saída deve ser **APENAS** o array JSON válido, sem texto adicional ou marcadores ```json.
                                 *   Retorne em order de nivel das perguntas (basico, intermediário, avançado).
                                 *   Garanta que o número total de elementos no array seja exatamente o solicitado (N ou N+1).
@@ -104,6 +106,7 @@ def generate(texto):
             system_instruction=system_instruction_text,
             generation_config=generation_config
         )
+
         response = model.generate_content(contents=contents)
 
         if response.candidates and response.candidates[0].content and response.candidates[0].content.parts:
@@ -115,7 +118,9 @@ def generate(texto):
         print(f"Resposta recebida da API (string): {resposta_str[:500]}...")
 
         try:
-            json.loads(resposta_str)
+            
+            resposta_json = json.loads(resposta_str)
+            
             print("Resposta JSON validada com sucesso.")
         except json.JSONDecodeError as json_err:
             print(f"AVISO: A resposta da API não é um JSON válido: {json_err}")
