@@ -43,7 +43,7 @@ def gerar_menu_lateral():
     st.sidebar.write("Navegue pelas páginas abaixo:")
     st.sidebar.page_link(page="App.py", label="🏠 Página Inicial") 
     st.sidebar.page_link("pages/modulo_ranking_empresa.py", label="📊 Ranking Vagas") # Certifique-se que este arquivo está em 'pages/'
-    st.sidebar.page_link("pages/modulo_gerador_avaliacao_tech.py", label="Apoio Tech") 
+    st.sidebar.page_link("pages/modulo_gerador_avaliacao_tech.py", label="🧑‍💻 Gerador Avaliação Técnica") 
  
 
 
