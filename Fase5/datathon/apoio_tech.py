@@ -37,10 +37,10 @@ def generate(texto):
                                 4.  Se as respostas devem ou não incluir exemplos de código.
                                 5.  deve respeitar o nível de senioridade da vaga (estágio, júnior, pleno, sênior, etc.) para formular as perguntas.
                                 6.  - Estágio: as perguntas devem  ser 100% nível básico.
-                                    - Júnior: as perguntas devem ser 80 % nivel básico e 20% nivel intermediário 
-                                    - Pleno: as perguntas devem ser 30 % nivel básico e 60% nivel intermediário e 10% nivel avançacada, 
+                                    - Júnior: as perguntas devem ser 80% nivel básico e 20% nivel intermediário 
+                                    - Pleno: as perguntas devem ser 30% nivel básico e 60% nivel intermediário e 10% nivel avançacada, 
                                     - Sênior: as perguntas devem ser 10% nível básico,  50% nivel intermediário  e 40% nivel avançado. 
-                                    - Espealista: as pergutnas devem ser 30% nivel intermediário e 70% nivel avançado.
+                                    - Especialista: as perguntas devem ser 30% nivel intermediário e 70% nivel avançado.
                                 7. Devem ser abertas, com respostas concisas e objetivas. Foco em conceitos e definições.
 
                                 Sua tarefa é gerar um array JSON contendo **exatamente** o número solicitado de perguntas (N ou N+1).
