@@ -1,12 +1,12 @@
-import pandas as pd
-import streamlit as st
-import json
-from apoio_tech import generate
-import os
-import markdown
-from fpdf import FPDF
 import re
-from App import gerar_menu_lateral
+import os
+import json
+import markdown
+import pandas as pd
+from fpdf import FPDF
+import streamlit as st
+from apoio_tech import generate
+import App
 
 COR_NAO_SEI = "#D3D3D3"
 COR_ERROU = "#FF0000"
@@ -26,8 +26,18 @@ METODO_ENTRADA_ESTRUTURADO = "Usar Campos Estruturados"
 METODO_ENTRADA_TEXTO_LIVRE = "Descrever a Vaga Livremente"
 METODO_ENTRADA_SELECIONAR_VAGA = "Selecionar Vagas"
 TIPO_PERGUNTA_DESAFIO = "desafio"
-gerar_menu_lateral()
-@st.cache_data(ttl=3600)
+
+hide_pages_nav_css = """
+                    <style>
+                        div[data-testid="stSidebarNav"] {
+                            display: none;
+                        }
+                    </style>
+                """
+st.markdown(hide_pages_nav_css, unsafe_allow_html=True)
+
+App.gerar_menu_lateral()
+
 def carregar_lista_json(caminho_arquivo):
     """
     Carrega uma lista de strings de um arquivo JSON.
@@ -127,14 +137,14 @@ class PDF(FPDF):
 def atualizar_limite_perguntas():    
     """Callback para ajustar o número de perguntas ao mudar a permissão de código."""
     permitir_codigo = st.session_state.get('check_codigo_resposta', False)
-    
+    limit_max_com_codigo = 20
     if permitir_codigo:
-        st.session_state.max_perguntas_padrao = 10
+        st.session_state.max_perguntas_padrao = limit_max_com_codigo
         quantidade_desejada_atual = st.session_state.get('numero_perguntas_desejadas', False)
-        if quantidade_desejada_atual > 10:
-            st.session_state.numero_perguntas_desejadas = 10
+        if quantidade_desejada_atual > limit_max_com_codigo:
+            st.session_state.numero_perguntas_desejadas = limit_max_com_codigo
     else:
-        st.session_state.max_perguntas_padrao = 20
+        st.session_state.max_perguntas_padrao = 30
 
 def gerar_pdf(titulo, itens_pdf):
     """
@@ -339,7 +349,7 @@ def exibir_quiz():
                 help="Marque se deseja que as respostas esperadas possam incluir exemplos de código."
             )
             if st.session_state.check_codigo_resposta:
-                st.warning("Limite de 10 perguntas padrão quando o código é permitido nas respostas.")
+                st.warning("Limite de 20 perguntas padrão quando o código é permitido nas respostas.")
 
         botao_gerar_desabilitado = st.session_state.metodo_entrada == METODO_ENTRADA_SELECIONAR_VAGA
 
@@ -772,8 +782,12 @@ if __name__ == "__main__":
     if 'quiz_gerado' not in st.session_state: st.session_state.quiz_gerado = False
     if 'incluir_pergunta_desafio' not in st.session_state: st.session_state.incluir_pergunta_desafio = False
     if 'permitir_codigo_na_resposta' not in st.session_state: st.session_state.permitir_codigo_na_resposta = False
-    if 'max_perguntas_padrao' not in st.session_state: st.session_state.max_perguntas_padrao = 20
+    if 'max_perguntas_padrao' not in st.session_state: st.session_state.max_perguntas_padrao = 30
+    
     
     exibir_quiz()
+ 
+    
+    
   
     

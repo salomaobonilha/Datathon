@@ -10,19 +10,19 @@ st.set_page_config(page_title="Início", layout="wide",
 
 st.title('Datathon - Tech Challenge')
 
-
     
-st.markdown(''' lorem ipsum dolor sit amet, consectetur adipiscing elit.
+def reenderizar_pagina_inicial():
+    st.markdown(''' lorem ipsum dolor sit amet, consectetur adipiscing elit.
     Donec euismod, nisl eget consectetur sagittis, nisl nunc egestas nisi, vitae facilisis nunc nisl eget nunc.''')
     # Código HTML + CSS para centralizar a imagem
-st.markdown(
-        """
-        <div style="display: flex; justify-content: center;">
-            <img src="https://webrh.decisionbr.com.br/assets/Bootstrap/img/examples/logotipo_decision_pequeno.png" width="320">
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    st.markdown(
+            """
+            <div style="display: flex; justify-content: center;">
+                <img src="https://webrh.decisionbr.com.br/assets/Bootstrap/img/examples/logotipo_decision_pequeno.png" width="320">
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
 
 st.info("ipsum dolor sit amet, consectetur adipiscing elit. Donec euismod, nisl eget consectetur sagittis, nisl nunc egestas nisi, vitae facilisis nunc nisl eget nunc.")
@@ -49,4 +49,5 @@ def gerar_menu_lateral():
 
 
 gerar_menu_lateral()
+reenderizar_pagina_inicial()
 st.markdown("---")

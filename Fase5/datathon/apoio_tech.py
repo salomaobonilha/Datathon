@@ -1,4 +1,5 @@
 import google.generativeai as genai
+
 import os
 import json
 
@@ -16,7 +17,9 @@ def generate(texto):
         str: A resposta JSON da API como string, ou uma string vazia em caso de erro.
     """
     try:
+            
         api_key = os.environ.get("GEMINI_API_KEY")
+        
         if not api_key:
             print("Erro: Variável de ambiente GEMINI_API_KEY não definida.")
             return ""
@@ -27,7 +30,7 @@ def generate(texto):
 
     print(f"Texto enviado para API (prompt usuário): {texto}")
 
-    model_name = "gemini-1.5-flash"
+    model_name = "gemini-2.0-flash-lite"
 
     
     system_instruction_text = """Você é um especialista na criação de perguntas e respostas para provas técnicas de tecnologia. O prompt do usuário especificará:
@@ -92,6 +95,7 @@ def generate(texto):
 
     generation_config = genai.GenerationConfig(
         response_mime_type="application/json",
+        max_output_tokens=8192
         # temperature=0.7
     )
     
@@ -102,10 +106,17 @@ def generate(texto):
         model = genai.GenerativeModel(
             model_name=model_name,
             system_instruction=system_instruction_text,
-            generation_config=generation_config
+            generation_config=generation_config,            
         )
 
-        response = model.generate_content(contents=contents)
+        response = model.generate_content(contents=contents,  request_options={'timeout': 120})
+
+        if response.usage_metadata:
+            print("Informações de Uso de Tokens:")
+            print(f"  Tokens da entrada (prompt_token_count): {response.usage_metadata.prompt_token_count}")
+            print(f"  Tokens da saída (candidates_token_count): {response.usage_metadata.candidates_token_count}")
+            print(f"  Total de tokens (total_token_count): {response.usage_metadata.total_token_count}")
+
 
         if response.candidates and response.candidates[0].content and response.candidates[0].content.parts:
              resposta_str = response.candidates[0].content.parts[0].text
