@@ -5,7 +5,8 @@ import streamlit as st
 from io import BytesIO
 
 st.title('Ranking de Vagas')
-App.gerar_menu_lateral()
+# A navegação agora é gerenciada automaticamente pelo Streamlit
+# App.gerar_menu_horizontal() # Esta linha não é mais necessária
 
 
 RANKING_DADOS_EXTERNOS = "Ranking com Dados Externos"
@@ -204,11 +205,10 @@ with tab_sistema:
                     step=1,
                 )
                 if st.button("Criar Ranking", type="primary", key="criar_ranking"):
-                    df_resultado_ranking = modelo.gerar_ranking_vagas(
+                    df_resultado_ranking = modelo.gerar_ranking_vagas_dados_externos(
                         descricao_vaga=st.session_state.descricao_vaga,
                         df=df,
-                        numero_candidatos=numero_candidatos,  # Defina o número de vagas que deseja retornar
-                        tipo_ranking=st.session_state.metodo_entrada
+                        numero_candidatos=numero_candidatos                        
                     )
                     st.success("Ranking gerado com sucesso!")
                     st.markdown("### Ranking Gerado")
@@ -243,7 +243,7 @@ with tab_sistema:
                     step=1,
                 )
                 if st.button("Criar Ranking", type="primary", key="criar_ranking"):
-                    df_resultado_ranking = modelo.gerar_ranking_vagas(
+                    df_resultado_ranking = modelo.gerar_ranking_vagas_dados_internos(
                         descricao_vaga=st.session_state.descricao_vaga_dados_internos,                        
                         numero_candidatos=numero_candidatos,  # Defina o número de vagas que deseja retornar
                         

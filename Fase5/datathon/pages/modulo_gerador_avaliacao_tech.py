@@ -27,16 +27,9 @@ METODO_ENTRADA_TEXTO_LIVRE = "Descrever a Vaga Livremente"
 METODO_ENTRADA_SELECIONAR_VAGA = "Selecionar Vagas"
 TIPO_PERGUNTA_DESAFIO = "desafio"
 
-hide_pages_nav_css = """
-                    <style>
-                        div[data-testid="stSidebarNav"] {
-                            display: none;
-                        }
-                    </style>
-                """
-st.markdown(hide_pages_nav_css, unsafe_allow_html=True)
-
-App.gerar_menu_lateral()
+# O CSS para ocultar a navegação padrão e a geração do menu
+# são removidos para usar a navegação padrão do Streamlit.
+# App.gerar_menu_horizontal() # Esta linha não é mais necessária
 
 def carregar_lista_json(caminho_arquivo):
     """
