@@ -54,8 +54,6 @@ def baixar_excel():
         filter_range = 'A1:E1'  # Defina o intervalo de filtro (cabeçalho)
         writer.sheets['candidatos'].autofilter(filter_range)  # Adiciona o filtro ao cabeçalho
         
-        
-        writer.close()
     excel_data = buffer.getvalue()
 
     # Oferece o botão de download
@@ -98,9 +96,37 @@ with tab_sistema:
         if uploaded_file is not None:
             try:
 
-                
-                df = pd.read_excel(uploaded_file)               
-                
+                df = pd.read_excel(uploaded_file)
+
+                # Validação das colunas do DataFrame
+                colunas_obrigatorias = ['id_candidato', 'nome_candidato', 'senioridade', 'curriculo']
+                colunas_faltantes = [col for col in colunas_obrigatorias if col not in df.columns]
+
+                if colunas_faltantes:
+                    raise DataFrameValidationError(
+                        f"O arquivo Excel carregado não contém as seguintes colunas obrigatórias: {', '.join(colunas_faltantes)}. "
+                        "Por favor, verifique o arquivo ou baixe o template para o formato correto."
+                    )
+                if df.empty:
+                    st.warning("A planilha do Excel enviada está vazia. Verifique o arquivo carregado.")
+                    st.stop()
+
+              
+              
+
+              
+
+                if df[colunas_obrigatorias].isnull().any().any():
+                    st.warning("Atenção: Foram encontrados dados nulos na planilha. "
+                               "Por favor, verifique e preencha todos os campos obrigatórios.")
+                    # Você pode decidir se quer parar o processamento aqui com st.stop() ou apenas avisar.
+
+                    df_campos_faltantes = df[colunas_obrigatorias].isna().sum().reset_index()
+
+                    df_campos_faltantes.columns = ['Campo', 'Quantidade de Nulos']
+
+                    st.dataframe(df_campos_faltantes, hide_index=True, use_container_width=True)
+                    st.stop() # Descomente se a presença de nulos deve impedir o prosseguimento.
                 st.success("Arquivo carregado com sucesso!")
                 st.markdown("### Dados dos Candidatos")
 
@@ -111,9 +137,6 @@ with tab_sistema:
                 items_per_page = 10  # Defina quantos itens por página
 
                 total_items = len(df)  # Total de itens no DataFrame
-                if total_items == 0:
-                    st.warning("A planilha do excel enviada está vazia. Verifique o arquivo carregado.")
-                    st.stop()
 
                 total_pages = (total_items + items_per_page - 1) // items_per_page
 
@@ -143,7 +166,10 @@ with tab_sistema:
 
             except Exception as e:
                 if isinstance(e, ValueError):
-                    st.error("Erro ao carregar dados do Excel: O arquivo não contém a aba chamada 'candidatos ou descricao_vaga'.")
+                    # Esta mensagem pode precisar de ajuste dependendo de como você quer tratar outros ValueErrors
+                    st.error(f"Erro ao processar o arquivo Excel: {e}")
+                elif isinstance(e, DataFrameValidationError):
+                    st.error(f"Erro de validação: {e}")
             except DataFrameValidationError as e:
                 st.error(f"Erro de validação: {e}")
 
@@ -198,9 +224,33 @@ with tab_sistema:
         st.markdown('''
             ### Ranking com Dados Internos
             Este ranking é gerado com base em dados coletados internamente.
-            Ele fornece uma visão específica das oportunidades disponíveis na sua organização.
+            Ele fornece uma visão dos candidatos já existente para vaga disponivel.
         ''')
         # Adicione aqui a lógica para dados internos, se houver.
+
+        st.markdown("### Descrição da Vaga")
+        st.markdown("Aqui você pode adicionar a descrição da vaga")
+        st.session_state.descricao_vaga_dados_internos = st.text_area(" ", max_chars=3000, label_visibility="collapsed",
+                                                                            height=200,
+                                                                            placeholder="Digite a descrição da vaga aqui...")
+        if st.session_state.descricao_vaga_dados_internos:
+                
+                numero_candidatos = st.slider(
+                    "Selecione o número de candidatos que deseja retornar:",
+                    min_value=1,
+                    max_value=100, 
+                    value=10,  # Valor padrão
+                    step=1,
+                )
+                if st.button("Criar Ranking", type="primary", key="criar_ranking"):
+                    df_resultado_ranking = modelo.gerar_ranking_vagas(
+                        descricao_vaga=st.session_state.descricao_vaga_dados_internos,                        
+                        numero_candidatos=numero_candidatos,  # Defina o número de vagas que deseja retornar
+                        
+                    )
+                    st.success("Ranking gerado com sucesso!")
+                    st.markdown("### Ranking Gerado")
+                    st.dataframe(df_resultado_ranking, hide_index=True)
     
 
 with tab_documentacao:
@@ -211,15 +261,16 @@ with tab_documentacao:
         utilizando diferentes fontes de dados. Ele permite gerar um ranking de candidatos
         com base em uma descrição de vaga e um conjunto de dados de candidatos.
 
-        #### Funcionalidades Principais:
+        #### Funcionalidades Principais (Aba "Sistema"):
 
         *   **Ranking com Dados Externos:**
+            *   **Template de Candidatos:** Oferece um botão para baixar um template Excel (`template_candidatos.xlsx`) que serve como modelo para a inserção dos dados dos candidatos. O template já vem com formatação e filtros no cabeçalho para facilitar o uso.
             *   Permite o upload de uma planilha Excel (.xlsx) contendo os dados dos candidatos.
+            *   **Validação de Dados:** Ao carregar o arquivo, o sistema verifica:
+                *   Se as colunas obrigatórias (`id_candidato`, `nome_candidato`, `senioridade`, `curriculo`) estão presentes.
+                *   Se a planilha não está vazia.
+                *   Se há dados nulos nas colunas obrigatórias, exibindo um resumo dos campos faltantes.
             *   Exibe os dados dos candidatos carregados de forma paginada para fácil visualização.
-            *   Requer a inserção de uma descrição detalhada da vaga para a qual o ranking será gerado.
-            *   Permite ao usuário definir o número de candidatos que devem ser incluídos no ranking final.
-            *   Gera um ranking dos candidatos mais adequados com base na descrição da vaga (atualmente, o modelo de ranking é simulado).
-            *   Apresenta o resultado do ranking em uma tabela.
         *   **Ranking com Dados Internos:**
             *   Previsto para utilizar dados de candidatos provenientes de sistemas internos da organização.
             *   (Funcionalidade a ser implementada ou detalhada conforme o sistema interno).
@@ -235,11 +286,15 @@ with tab_documentacao:
             *   Escolha a opção desejada.
 
         3.  **Para "Ranking com Dados Externos":**
+            *   **Baixar Template (Opcional, mas Recomendado):**
+                *   Clique em "Baixar Arquivo Excel" na seção "Template de Candidatos" para obter o modelo formatado.
+                *   Preencha este template com os dados dos seus candidatos.
             *   **Upload do Arquivo Excel:**
-                *   Clique no botão "Escolha um arquivo Excel".
+                *   Na seção "Carregue sua Planilha de Candidatos", clique no botão "Escolha um arquivo Excel".
                 *   Selecione o arquivo `.xlsx` do seu computador que contém os dados dos candidatos.
-                *   **Observação:** O arquivo deve estar formatado corretamente. O sistema espera encontrar colunas relevantes para os candidatos (ex: `id_candidato`, `nome_candidato`, `senioridade`, etc., conforme utilizado pelo modelo de ranking).
-            *   **Visualização dos Dados:**
+                *   **Observação:** O arquivo deve conter uma aba chamada `candidatos` e as colunas obrigatórias: `id_candidato`, `nome_candidato`, `senioridade`, `curriculo`. O sistema realizará validações e informará sobre quaisquer problemas.
+            *   **Visualização e Validação dos Dados:**
+                *   Se o arquivo for carregado com sucesso e passar nas validações iniciais, uma mensagem de sucesso será exibida.
                 *   Após o upload bem-sucedido, uma prévia dos dados dos candidatos ("Dados dos Candidatos") será exibida em uma tabela.
                 *   Se houver muitos candidatos, a tabela será paginada (10 itens por página). Use os botões "⬅️ Anterior" e "Próxima ➡️" para navegar pelas páginas.
             *   **Descrição da Vaga:**
@@ -252,12 +307,18 @@ with tab_documentacao:
                 *   O sistema processará os dados e exibirá o "Ranking Gerado" em uma nova tabela, mostrando os candidatos selecionados e suas respectivas pontuações/ranking.
 
         4.  **Para "Ranking com Dados Internos":**
-            *   Esta seção descreverá como utilizar o ranking com dados internos da organização.
-            *   (Atualmente, esta funcionalidade pode estar em desenvolvimento ou aguardando integração. Siga as instruções específicas que aparecerão nesta seção quando disponível).
+            *   Esta opção utiliza um conjunto de dados de candidatos internos (atualmente simulados com dados fixos) para gerar o ranking.
+            *   **Descrição da Vaga:**
+                *   No campo de texto abaixo de "Descrição da Vaga", insira uma descrição detalhada da vaga.
+            *   **Número de Candidatos para o Ranking:**
+                *   Utilize o controle deslizante ("Selecione o número de candidatos que deseja retornar:") para definir quantos dos melhores candidatos você deseja ver no ranking final. O valor padrão é 10, com um máximo de 100 (baseado nos dados simulados disponíveis).
+            *   **Gerar Ranking:**
+                *   Após preencher a descrição da vaga e selecionar o número de candidatos, clique no botão "Criar Ranking".
+            *   **Visualizar Resultado:**
+                *   O sistema processará os dados e exibirá o "Ranking Gerado" em uma nova tabela, mostrando os candidatos selecionados e suas respectivas pontuações/ranking.
 
-        #### Observações Adicionais:
-        *   O modelo de ranking atual no modo "Dados Externos" é uma simulação para fins de demonstração (gera um ranking e score sequenciais). Em uma implementação real, algoritmos de processamento de linguagem natural (NLP) ou outros métodos de correspondência seriam usados para comparar a descrição da vaga com os perfis dos candidatos.
-        *   Certifique-se de que o arquivo Excel carregado esteja no formato correto e contenha os dados esperados para evitar erros. Se o arquivo estiver vazio ou mal formatado, mensagens de erro ou aviso serão exibidas.
+        #### Observações Adicionais:        
+        *   Certifique-se de que o arquivo Excel carregado esteja no formato correto e contenha os dados esperados para evitar erros. O sistema tentará validar a estrutura do arquivo e a presença de dados nulos.
     ''')
 
     st.markdown("---")
