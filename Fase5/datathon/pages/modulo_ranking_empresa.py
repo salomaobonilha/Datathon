@@ -1,12 +1,9 @@
-import App
 import modelo
 import pandas as pd
 import streamlit as st
 from io import BytesIO
 
 st.title('Ranking de Vagas')
-# A navegação agora é gerenciada automaticamente pelo Streamlit
-# App.gerar_menu_horizontal() # Esta linha não é mais necessária
 
 
 RANKING_DADOS_EXTERNOS = "Ranking com Dados Externos"
