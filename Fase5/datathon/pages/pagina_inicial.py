@@ -6,6 +6,21 @@ st.markdown(
     """
 Esta é uma plataforma multifuncional de apoio ao recrutamento, oferecendo ferramentas para classificar candidatos e gerar avaliações técnicas personalizadas.
 
+## Índice
+
+*   [Módulo: Ranking de Vagas](#modulo-ranking-de-vagas)
+    *   [Ranking com Dados Externos](#ranking-com-dados-externos)
+    *   [Ranking com Dados Internos](#ranking-com-dados-internos)
+*   [Módulo: Gerador de Avaliação Técnica](#modulo-gerador-de-avaliacao-tecnica)
+    *   [Geração de Perguntas Personalizadas](#geracao-de-perguntas-personalizadas)
+    *   [Interface de Avaliação Interativa](#interface-de-avaliacao-interativa)
+    *   [Cálculo de Resultados e Feedback](#calculo-de-resultados-e-feedback)
+    *   [Exportação em PDF](#exportacao-em-pdf)
+
+
+
+---
+
 ## Módulo: Ranking de Vagas
 
 Este módulo, intitulado "**Ranking de Vagas**", é uma ferramenta interativa projetada para auxiliar no processo de recrutamento, permitindo a classificação de candidatos para vagas de emprego específicas.

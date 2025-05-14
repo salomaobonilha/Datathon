@@ -1,0 +1,5 @@
+applicants.json filter=lfs diff=lfs merge=lfs -text
+linguagens.json filter=lfs diff=lfs merge=lfs -text
+profissoes.json filter=lfs diff=lfs merge=lfs -text
+senioridades.json filter=lfs diff=lfs merge=lfs -text
+vagas.json filter=lfs diff=lfs merge=lfs -text

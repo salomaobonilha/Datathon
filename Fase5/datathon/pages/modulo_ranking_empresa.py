@@ -57,7 +57,7 @@ class SistemaRecomendacao:
 
 @st.cache_data
 def carregar_vagas():
-    with open('fiap-tech-challenge-pos-tech-data-analytics/Fase5/datathon/vagas.json', 'r', encoding='utf-8') as f:
+    with open('dataset/vagas.json', 'r', encoding='utf-8') as f:
         vagas = json.load(f)
     
     dados_vagas = []
@@ -76,6 +76,8 @@ def main():
     RANKING_DADOS_INTERNOS = "Dados Internos (Sistema)"
     
     tab_sistema, tab_documentacao = st.tabs(["Sistema", "Documentação"])
+
+    uploaded_file = None
     
     with tab_sistema:
         # Passo 1: Seleção da fonte de dados
@@ -87,23 +89,41 @@ def main():
         
         df_candidatos = None
         
+        col_download, col_upload  = st.columns(2,border=True)
+
+    
         # Passo 2: Carregamento dos candidatos
         if fonte_dados == RANKING_DADOS_EXTERNOS:
-            st.subheader("Carregar Candidatos via Excel")
-            
-            with st.expander("Obter Template", expanded=False):
+            with col_download:
+                st.markdown("## Carregar Candidatos via Excel")
+                
+                
                 template_df = pd.DataFrame(columns=[
                     'id_candidato', 
                     'nome_candidato', 
                     'senioridade', 
-                    'curriculo'
+                    'curriculo',
+                    'informacoes_adicionais'
                 ])
-                
+                    
+                    
                 buffer = BytesIO()
-                with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
-                    template_df.to_excel(writer, index=False)
-                    worksheet = writer.sheets['Sheet1']
-                    worksheet.set_column('A:D', 30)
+                with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:                    
+                    worksheet = writer.book.add_worksheet('candidatos')
+                    header_format = writer.book.add_format({'bold': True, 'align': 'left', 'valign': 'vcenter'})
+                    left_align_format = writer.book.add_format({'align': 'left', 'valign': 'vcenter'})
+
+                    for col_num, value in enumerate(template_df.columns.values):
+                        worksheet.write(0, col_num, value, header_format)
+                    
+                    writer.sheets['candidatos'].set_column('B:B', 30, left_align_format)
+                    writer.sheets['candidatos'].set_column('A:A', 15, left_align_format)  
+                    writer.sheets['candidatos'].set_column('B:B', 30, left_align_format)  
+                    writer.sheets['candidatos'].set_column('C:C', 25, left_align_format)
+                    writer.sheets['candidatos'].set_column('D:D', 150, left_align_format)
+                    writer.sheets['candidatos'].set_column('E:E', 150, left_align_format)
+                    filter_range = 'A1:E1'
+                    writer.sheets['candidatos'].autofilter(filter_range)
                 
                 st.download_button(
                     label="📥 Baixar Template",
@@ -111,66 +131,121 @@ def main():
                     file_name="template_candidatos.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
-            
-            uploaded_file = st.file_uploader("Carregar planilha de candidatos", type="xlsx")
-            if uploaded_file:
+
+            with col_upload:
+                
+                uploaded_file = st.file_uploader("Carregar planilha de candidatos", type="xlsx")
+
+        if uploaded_file is not None:
+            try:
+
+                df_candidatos = pd.read_excel(uploaded_file)
+
+                # Validação das colunas do DataFrame
+                colunas_obrigatorias = ['id_candidato', 'nome_candidato', 'senioridade', 'curriculo']
+                colunas_faltantes = [col for col in colunas_obrigatorias if col not in df_candidatos.columns]
+
+                if colunas_faltantes:
+                    raise ValueError(
+                        f"O arquivo Excel carregado não contém as seguintes colunas obrigatórias: {', '.join(colunas_faltantes)}. "
+                        "Por favor, verifique o arquivo ou baixe o template para o formato correto."
+                    )
+                if df_candidatos.empty:
+                    st.warning("A planilha do Excel enviada está vazia. Verifique o arquivo carregado.")
+                    st.stop()
+
+
+                if df_candidatos[colunas_obrigatorias].isnull().any().any():
+                    st.warning("Atenção: Foram encontrados dados nulos na planilha. "
+                            "Por favor, verifique e preencha todos os campos obrigatórios.")
+                    # Você pode decidir se quer parar o processamento aqui com st.stop() ou apenas avisar.
+
+                    df_campos_faltantes = df_candidatos[colunas_obrigatorias].isna().sum().reset_index()
+
+                    df_campos_faltantes.columns = ['Campo', 'Quantidade de Nulos']
+
+                    st.dataframe(df_campos_faltantes, hide_index=True, use_container_width=True)
+                    st.stop() # Descomente se a presença de nulos deve impedir o prosseguimento.
+                st.success("Arquivo carregado com sucesso!")
+                st.toast(f"{len(df_candidatos)} candidatos carregados", icon="👥")
+                st.markdown("### Dados dos Candidatos")
+
+                # Inicializar o estado da paginação
+                if 'current_page' not in st.session_state:
+                    st.session_state.current_page = 0
+                
+                items_per_page = 10  # Defina quantos itens por página
+
+                total_items = len(df_candidatos)  # Total de itens no DataFrame
+
+                total_pages = (total_items + items_per_page - 1) // items_per_page
+
+                start_idx = st.session_state.current_page * items_per_page
+                end_idx = start_idx + items_per_page
+                
+                # Exibe a fatia do DataFrame para a página atual                
+                st.dataframe(df_candidatos.iloc[start_idx:end_idx], hide_index=True)
+
+                # Controles de Paginação
+                col1, col2, col3 = st.columns([1,2,1])
+
+                with col1:
+                    if st.button("⬅️ Anterior", disabled=(st.session_state.current_page == 0)):
+                        st.session_state.current_page -= 1
+                        st.rerun()
+                
+                with col2:
+                    st.write(f"Página {st.session_state.current_page + 1} de {total_pages}")
+
+                with col3:
+                    if st.button("Próxima ➡️", disabled=(st.session_state.current_page >= total_pages - 1)):
+                        st.session_state.current_page += 1
+                        st.rerun()
+            except Exception as e:
+                if isinstance(e, ValueError):
+                    # Esta mensagem pode precisar de ajuste dependendo de como você quer tratar outros ValueErrors
+                    st.error(f"Erro ao processar o arquivo Excel: {e}")
+                       
+        elif fonte_dados == RANKING_DADOS_INTERNOS:
+                st.subheader("Carregar candidatos do sistema interno")  # Dados Internos
                 try:
-                    with st.spinner("Processando arquivo Excel..."):
-                        df_candidatos = pd.read_excel(uploaded_file)
-                        df_candidatos.rename(columns={'curriculo': 'cv_texto_pt'}, inplace=True)
-                        st.toast("Arquivo processado com sucesso!", icon="✅")
+                    @st.cache_data
+                    def carregar_dados_internos():
+                        with open('dataset/applicants.json', 'r', encoding='utf-8') as f:
+                            candidatos = json.load(f)
+                        
+                        dados = []
+                        for id_cand, info in candidatos.items():
+                            dados.append({
+                                'id_candidato': id_cand,
+                                'nome_candidato': info.get('infos_basicas', {}).get('nome', '') or \
+                                    info.get('informacoes_pessoais', {}).get('nome', 'Nome não informado'),
+                                'senioridade': info.get('informacoes_profissionais', {}).get('nivel_profissional', 'Não especificado'),
+                                'cv_texto_pt': info.get('cv_pt', 'Currículo não disponível')
+                            })
+                        return pd.DataFrame(dados)
                     
-                    required_columns = ['id_candidato', 'nome_candidato', 'senioridade', 'cv_texto_pt']
-                    if not all(col in df_candidatos.columns for col in required_columns):
-                        missing = [col for col in required_columns if col not in df_candidatos.columns]
-                        raise ValueError(f"Colunas obrigatórias ausentes: {', '.join(missing)}")
+                    with st.spinner("Carregando base de candidatos..."):
+                        df_candidatos = carregar_dados_internos()
+                        st.toast(f"{len(df_candidatos)} candidatos carregados", icon="👥")
                     
-                    with st.expander("Visualizar dados carregados", expanded=False):
+                    with st.expander("Visualizar base interna", expanded=False):
                         st.dataframe(df_candidatos.head(10), use_container_width=True)
                 
                 except Exception as e:
-                    st.error(f"Erro no processamento: {str(e)}")
+                    st.error(f"Erro ao carregar dados internos: {str(e)}")
                     st.stop()
-        
-        else:
-            st.subheader("Carregar candidatos do sistema interno")  # Dados Internos
-            try:
-                @st.cache_data
-                def carregar_dados_internos():
-                    with open('fiap-tech-challenge-pos-tech-data-analytics/Fase5/datathon/applicants.json', 'r', encoding='utf-8') as f:
-                        candidatos = json.load(f)
-                    
-                    dados = []
-                    for id_cand, info in candidatos.items():
-                        dados.append({
-                            'id_candidato': id_cand,
-                            'nome_candidato': info.get('infos_basicas', {}).get('nome', '') or \
-                                   info.get('informacoes_pessoais', {}).get('nome', 'Nome não informado'),
-                            'senioridade': info.get('informacoes_profissionais', {}).get('nivel_profissional', 'Não especificado'),
-                            'cv_texto_pt': info.get('cv_pt', 'Currículo não disponível')
-                        })
-                    return pd.DataFrame(dados)
-                
-                with st.spinner("Carregando base de candidatos..."):
-                    df_candidatos = carregar_dados_internos()
-                    st.toast(f"{len(df_candidatos)} candidatos carregados", icon="👥")
-                
-                with st.expander("Visualizar base interna", expanded=False):
-                    st.dataframe(df_candidatos.head(10), use_container_width=True)
             
-            except Exception as e:
-                st.error(f"Erro ao carregar dados internos: {str(e)}")
-                st.stop()
-        
-        # Só mostra o restante se os dados foram carregados corretamente
-        if df_candidatos is not None:
+        # Só mostra o restante se os dados foram carregados corretamente        
+        if df_candidatos is not None:            
             # Passo 3: Seleção do método de definição da vaga
             st.divider()
             MODO_DESCRICAO = "Escrever descrição manual"
             MODO_SELECAO_VAGA = "Selecionar vaga existente"
             
+            st.markdown("### Quais as informações da vaga?")
             metodo_descricao = st.radio(
-                "Como deseja definir a vaga?",
+                "",
                 (MODO_DESCRICAO, MODO_SELECAO_VAGA),
                 horizontal=True
             )
