@@ -6,7 +6,7 @@ import pandas as pd
 from fpdf import FPDF
 import streamlit as st
 from apoio_tech import generate
-import App
+
 
 COR_NAO_SEI = "#D3D3D3"
 COR_ERROU = "#FF0000"
@@ -17,7 +17,7 @@ COR_CALCULAR = "#0000FF"
 COR_TEXTO_BOTAO_CLARO = "black"
 COR_TEXTO_BOTAO_ESCURO = "white"
 
-TRADUCAO_NAO_SEI = "Não sei a resposta"
+TRADUCAO_NAO_SABE = "Não sabe a resposta"
 TRADUCAO_ERROU = "Errou a resposta"
 TRADUCAO_INCOMPLETA = "Resposta incompleta"
 TRADUCAO_COMPLETA = "Resposta completa"
@@ -535,7 +535,7 @@ def exibir_quiz():
                     st.markdown(f'<div class="resposta-destaque"><pre>{resposta_bruta}</pre></div>', unsafe_allow_html=True)                
 
                 opcoes_botoes = [
-                    {"label": TRADUCAO_NAO_SEI, "score": 0, "key_prefix": "nsr"},
+                    {"label": TRADUCAO_NAO_SABE, "score": 0, "key_prefix": "nsr"},
                     {"label": TRADUCAO_ERROU, "score": -1, "key_prefix": "er"},
                     {"label": TRADUCAO_INCOMPLETA, "score": 0.5, "key_prefix": "ri"},
                     {"label": TRADUCAO_COMPLETA, "score": 1, "key_prefix": "rc"},
@@ -754,7 +754,7 @@ def exibir_quiz():
         4.  **Realize a Avaliação:**
             *   As perguntas e respostas esperadas serão exibidas.
             *   Para cada pergunta, avalie a resposta do candidato usando os botões:
-                *   **Não sei a resposta:** (0 pontos) O candidato não soube responder.
+                *   **Não sabe a resposta:** (0 pontos) O candidato não soube responder.
                 *   **Errou a resposta:** (-1 ponto) A resposta está incorreta.
                 *   **Resposta incompleta:** (0.5 pontos) A resposta está parcialmente correta ou falta profundidade.
                 *   **Resposta completa:** (1 ponto) A resposta está correta e completa.
