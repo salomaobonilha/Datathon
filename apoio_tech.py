@@ -18,10 +18,18 @@ def generate(texto):
     """
     try:
             
-        api_key = os.environ.get("GEMINI_API_KEY")
-        
+        try:
+    # Tenta pegar a chave das secrets do Streamlit
+            api_key = st.secrets["GEMINI_API_KEY"]
+        except KeyError:
+            # Fallback para variável de ambiente local
+            api_key = os.environ.get("GEMINI_API_KEY")
+    
         if not api_key:
-            print("Erro: Variável de ambiente GEMINI_API_KEY não definida.")
+            st.error("Erro: Chave API não configurada. Verifique as instruções de configuração.")
+            raise ValueError("API Key não encontrada")
+        
+        
             return ""
         genai.configure(api_key=api_key)
     except Exception as e:
