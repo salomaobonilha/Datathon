@@ -18,17 +18,16 @@ def generate(texto):
     """
     try:
             
-            try:
-                import streamlit as st
-                api_key = st.secrets.get("GEMINI_API_KEY", os.environ.get("GEMINI_API_KEY"))
-            except:
-                api_key = os.environ.get("GEMINI_API_KEY")
-            
-            if not api_key:
-                print("ERRO: Chave API não encontrada!")
-                print("Verifique se criou o secret no Streamlit ou variável de ambiente")
-                return "[ERRO] Configuração de API Key inválida"
-                    
+        try:
+            import streamlit as st
+            api_key = st.secrets.get("GEMINI_API_KEY", os.environ.get("GEMINI_API_KEY"))
+        except:
+            api_key = os.environ.get("GEMINI_API_KEY")
+
+        if not api_key:
+            print("ERRO: Chave API não encontrada!")
+            print("Verifique se criou o secret no Streamlit ou variável de ambiente")
+            return "[ERRO] Configuração de API Key inválida"
         
             return ""
         genai.configure(api_key=api_key)
