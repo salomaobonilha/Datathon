@@ -7,7 +7,6 @@ import re
 import json
 from modelo import SistemaRecomendacao
 import apoio_tech as inteligencia_st
-# Configurações iniciais
 st.title('Ranking de Vagas')
 
 
@@ -25,27 +24,25 @@ def extrair_json_colunas(df, colunas):
     """
     try:
         
-        for coluna in colunas:
-        # Normaliza o JSON da coluna e cria um novo DataFrame
+        for coluna in colunas: # Itera sobre cada coluna que contém JSON
+            # Normaliza a estrutura JSON da coluna especificada para um novo DataFrame.
+            # Isso transforma objetos JSON aninhados em colunas planas.
             df_normalizado = pd.json_normalize(df[coluna])
-
-            # Define um prefixo para as novas colunas para evitar conflitos
-            df_normalizado = df_normalizado.add_prefix(f'{coluna}_')
-
-            # Remove a coluna original com JSON
+            # Adiciona um prefixo ao nome das novas colunas para evitar conflitos
+            # com colunas existentes e para indicar sua origem.
+            df_normalizado = df_normalizado.add_prefix(f'{coluna}_') 
             df = df.drop(coluna, axis=1)
-
-            # Concatena o DataFrame original com as novas colunas normalizadas
             df = pd.concat([df, df_normalizado], axis=1)            
         return df
     except KeyError as e:
+        # Captura erro se uma coluna especificada não existir no DataFrame.
         print(f"Erro: Coluna não encontrada - {e}. Verifique os nomes das colunas.")
         KeyError(e)
 
-@st.cache_data
+@st.cache_data # Cacheia o resultado desta função para otimizar o carregamento.
 def carregar_vagas():
     print("Carregando vagas...")
-    with open('dataset/vagas.json', 'r', encoding='utf-8') as f:
+    with open('dataset/vagas.json', 'r', encoding='utf-8') as f: # Abre o arquivo JSON de vagas.
         vagas = json.load(f)
     
     dados_vagas = []
@@ -53,7 +50,8 @@ def carregar_vagas():
         dados_vagas.append({
             'id_vaga': id_vaga,
             'titulo': info.get('informacoes_basicas', {}).get('titulo_vaga', 'Sem título'),
-            'descricao': f"{info.get('perfil_vaga', {}).get('principais_atividades', '')} {info.get('perfil_vaga', {}).get('competencia_tecnicas_e_comportamentais', '')}"
+            # Concatena atividades e competências para formar uma descrição completa da vaga.
+            'descricao': f"{info.get('perfil_vaga', {}).get('principais_atividades', '')} {info.get('perfil_vaga', {}).get('competencia_tecnicas_e_comportamentais', '')}" 
         })
     return pd.DataFrame(dados_vagas)
 
@@ -63,12 +61,11 @@ def main():
     RANKING_DADOS_EXTERNOS = "Dados Externos (Upload Excel)"
     RANKING_DADOS_INTERNOS = "Dados Internos (Sistema)"
     
-    tab_sistema, tab_documentacao = st.tabs(["Sistema", "Documentação"])
+    tab_sistema, tab_documentacao = st.tabs(["Sistema", "Documentação"]) # Cria abas na interface.
 
     uploaded_file = None
     
     with tab_sistema:
-        # Passo 1: Seleção da fonte de dados
         fonte_dados = st.radio(
             "Selecione a fonte de dados dos candidatos:",
             (RANKING_DADOS_EXTERNOS, RANKING_DADOS_INTERNOS),
@@ -76,14 +73,13 @@ def main():
         )
         
         df_candidatos = None
-    
-        # Passo 2: Carregamento dos candidatos
+        # Lógica para carregar dados de candidatos externos via upload de Excel.
         if fonte_dados == RANKING_DADOS_EXTERNOS:
             col_download, col_upload  = st.columns(2,border=True)
             with col_download:
                 st.markdown("## Carregar Candidatos via Excel")
                 
-                
+                # Define a estrutura do DataFrame para o template Excel.
                 template_df = pd.DataFrame(columns=[
                     'id_candidato', 
                     'nome_candidato', 
@@ -93,20 +89,23 @@ def main():
                 ])
                     
                     
-                buffer = BytesIO()
+                buffer = BytesIO() # Cria um buffer em memória para o arquivo Excel.
                 with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:                    
                     worksheet = writer.book.add_worksheet('candidatos')
+                    # Formatação para o cabeçalho e células.
                     header_format = writer.book.add_format({'bold': True, 'align': 'left', 'valign': 'vcenter'})
                     left_align_format = writer.book.add_format({'align': 'left', 'valign': 'vcenter'})
 
+                    # Escreve o cabeçalho no worksheet.
                     for col_num, value in enumerate(template_df.columns.values):
                         worksheet.write(0, col_num, value, header_format)
                     
+                    # Define a largura das colunas para melhor visualização.
                     writer.sheets['candidatos'].set_column('B:B', 30, left_align_format)
                     writer.sheets['candidatos'].set_column('A:A', 15, left_align_format)  
                     writer.sheets['candidatos'].set_column('B:B', 30, left_align_format)  
                     writer.sheets['candidatos'].set_column('C:C', 25, left_align_format)
-                    writer.sheets['candidatos'].set_column('D:D', 150, left_align_format)
+                    writer.sheets['candidatos'].set_column('D:D', 150, left_align_format) # Coluna de currículo com maior largura.
                     writer.sheets['candidatos'].set_column('E:E', 150, left_align_format)
                     filter_range = 'A1:E1'
                     writer.sheets['candidatos'].autofilter(filter_range)
@@ -120,17 +119,17 @@ def main():
 
             with col_upload:
                 
-                uploaded_file = st.file_uploader("Carregar planilha de candidatos", type="xlsx")
+                uploaded_file = st.file_uploader("Carregar planilha de candidatos", type="xlsx") # Widget para upload de arquivo.
 
         if uploaded_file is not None:
             try:
 
                 df_candidatos = pd.read_excel(uploaded_file)
-
-                # Validação das colunas do DataFrame
+                # Define as colunas obrigatórias que o arquivo Excel deve conter.
                 colunas_obrigatorias = ['id_candidato', 'nome_candidato', 'senioridade', 'curriculo']
                 colunas_faltantes = [col for col in colunas_obrigatorias if col not in df_candidatos.columns]
 
+                # Validação da presença das colunas obrigatórias.
                 if colunas_faltantes:
                     raise ValueError(
                         f"O arquivo Excel carregado não contém as seguintes colunas obrigatórias: {', '.join(colunas_faltantes)}. "
@@ -140,92 +139,76 @@ def main():
                     st.warning("A planilha do Excel enviada está vazia. Verifique o arquivo carregado.")
                     st.stop()
 
-
+                # Validação de dados nulos nas colunas obrigatórias.
                 if df_candidatos[colunas_obrigatorias].isnull().any().any():
                     st.warning("Atenção: Foram encontrados dados nulos na planilha. "
                             "Por favor, verifique e preencha todos os campos obrigatórios.")
-                    # Você pode decidir se quer parar o processamento aqui com st.stop() ou apenas avisar.
 
                     df_campos_faltantes = df_candidatos[colunas_obrigatorias].isna().sum().reset_index()
 
                     df_campos_faltantes.columns = ['Campo', 'Quantidade de Nulos']
 
                     st.dataframe(df_campos_faltantes, hide_index=True, use_container_width=True)
-                    st.stop() # Descomente se a presença de nulos deve impedir o prosseguimento.
+                    st.stop() 
                 st.success("Arquivo carregado com sucesso!")
                 st.toast(f"{len(df_candidatos)} candidatos carregados", icon="👥")
                 st.markdown("### Dados dos Candidatos")
-
-                # Inicializar o estado da paginação
+                # Inicializa o estado da paginação se não existir.
                 if 'current_page' not in st.session_state:
                     st.session_state.current_page = 0
                 
-                items_per_page = 10  # Defina quantos itens por página
-
-                total_items = len(df_candidatos)  # Total de itens no DataFrame
-
+                items_per_page = 10  
+                total_items = len(df_candidatos)  
+                # Calcula o número total de páginas.
                 total_pages = (total_items + items_per_page - 1) // items_per_page
-
+                # Define os índices de início e fim para a fatia do DataFrame da página atual.
                 start_idx = st.session_state.current_page * items_per_page
                 end_idx = start_idx + items_per_page
-                
-                # Exibe a fatia do DataFrame para a página atual                
-                st.dataframe(df_candidatos.iloc[start_idx:end_idx], hide_index=True)
-
-                # Controles de Paginação
+                st.dataframe(df_candidatos.iloc[start_idx:end_idx], hide_index=True) # Exibe a página atual dos dados.
                 col1, col2, col3 = st.columns([1,2,1])
-
                 with col1:
                     if st.button("⬅️ Anterior", disabled=(st.session_state.current_page == 0)):
                         st.session_state.current_page -= 1
                         st.rerun()
-                
                 with col2:
                     st.write(f"Página {st.session_state.current_page + 1} de {total_pages}")
-
                 with col3:
                     if st.button("Próxima ➡️", disabled=(st.session_state.current_page >= total_pages - 1)):
                         st.session_state.current_page += 1
                         st.rerun()
             except Exception as e:
                 if isinstance(e, ValueError):
-                    # Esta mensagem pode precisar de ajuste dependendo de como você quer tratar outros ValueErrors
+                    # Trata erros específicos de valor, como colunas faltantes.
                     st.error(f"Erro ao processar o arquivo Excel: {e}")
                        
         elif fonte_dados == RANKING_DADOS_INTERNOS:
-                st.subheader("Carregar candidatos do sistema interno")  # Dados Internos
+                st.subheader("Carregar candidatos do sistema interno")
                 try:
-                    @st.cache_data
+                    @st.cache_data # Cacheia os dados internos para evitar recarregamentos.
                     def carregar_dados_internos():                        
-                        #with open('dataset/applicants.json', 'r', encoding='utf-8') as f:
-                        #    candidatos = json.load(f)
-                        
-                        #dados = []
-                        #for id_cand, info in candidatos.items():
-                        #    dados.append({
-                        #        'id_candidato': id_cand,
-                        #        'nome_candidato': info.get('infos_basicas', {}).get('nome', '') or \
-                        #            info.get('informacoes_pessoais', {}).get('nome', 'Nome não informado'),
-                        #        'senioridade': info.get('informacoes_profissionais', {}).get('nivel_profissional', 'Não especificado'),
-                        #        'curriculo': info.get('cv_pt', 'Currículo não disponível')
-                        #        #'curriculo': info.get('cv_pt', 'Currículo não disponível')
-                        #    })
+                       
+                        # Lista de colunas consideradas importantes para formar o campo 'curriculo' consolidado.
                         colunas_importantes = ["cv_pt", "cv_en", "informacoes_profissionais_titulo_profissional", "informacoes_profissionais_area_atuacao", "informacoes_profissionais_conhecimentos_tecnicos", "informacoes_profissionais_certificacoes", "informacoes_profissionais_outras_certificacoes", "informacoes_profissionais_nivel_profissional", "informacoes_profissionais_qualificacoes", "informacoes_profissionais_experiencias", "formacao_e_idiomas_nivel_academico", "formacao_e_idiomas_nivel_ingles", "formacao_e_idiomas_nivel_espanhol", "formacao_e_idiomas_outro_idioma", "formacao_e_idiomas_cursos", "formacao_e_idiomas_outro_curso"]
                         df_applicants = pd.read_json("dataset/applicants.json", encoding="utf-8")
-                        df_applicants = df_applicants.T                        
+                        df_applicants = df_applicants.T # Transpõe o DataFrame (IDs de candidatos como linhas).
+                        # Seleciona colunas que contêm JSON e precisam ser normalizadas, excluindo CVs.
                         colunas_applicants = df_applicants.columns.drop(['cv_pt','cv_en'])                        
+                        # Normaliza as colunas JSON.
                         df_applicants = extrair_json_colunas(df_applicants, list(colunas_applicants))                        
                         df_applicants.reset_index(names="id_candidato", inplace=True)
+                        # Cria uma coluna 'curriculo' unindo o conteúdo das 'colunas_importantes'.
+                        # Valores nulos são preenchidos com string vazia antes da agregação.
                         df_applicants['curriculo'] = df_applicants[colunas_importantes].fillna('').agg(' '.join, axis=1)
                         df_applicants.rename(columns={'infos_basicas_nome':'nome_candidato'}, inplace=True)
 
+                        # Seleciona as colunas finais e remove linhas com valores nulos em colunas essenciais.
                         df_applicants = df_applicants[["id_candidato","nome_candidato", "curriculo"]]
                         df_applicants.dropna(axis=0, how='any', inplace=True)
                         
                         return pd.DataFrame(df_applicants)
                     
                     with st.spinner("Carregando base de candidatos..."):
-                        df_candidatos = carregar_dados_internos()
+                        df_candidatos = carregar_dados_internos() # Carrega e processa os dados.
                         st.toast(f"{len(df_candidatos)} candidatos carregados", icon="👥")
                     
                     with st.expander("Visualizar base interna", expanded=False):
@@ -234,10 +217,8 @@ def main():
                 except Exception as e:
                     st.error(f"Erro ao carregar dados internos: {str(e)}")
                     st.stop()
-            
-        # Só mostra o restante se os dados foram carregados corretamente        
+        # Continua o fluxo apenas se os dados dos candidatos (df_candidatos) foram carregados.
         if df_candidatos is not None:            
-            # Passo 3: Seleção do método de definição da vaga
             st.divider()
             MODO_DESCRICAO = "Escrever descrição manual"
             MODO_SELECAO_VAGA = "Selecionar vaga existente"
@@ -250,11 +231,10 @@ def main():
             )
             
             descricao_vaga = ""
-            
-            # Passo 4: Entrada dos dados da vaga
+            # Lógica para selecionar uma vaga existente.
             if metodo_descricao == MODO_SELECAO_VAGA:
                 print("Carregando vagas...")
-                df_vagas = carregar_vagas()
+                df_vagas = carregar_vagas() # Carrega as vagas do JSON.
                 vagas_lista = [f"{row['id_vaga']} - {row['titulo']}" for _, row in df_vagas.iterrows()]
                 
                 col1, col2 = st.columns([2, 3])
@@ -266,17 +246,16 @@ def main():
                     )
                 
                 if vaga_selecionada:
+                    # Extrai o ID da vaga selecionada para buscar sua descrição.
                     id_vaga = vaga_selecionada.split(' - ')[0]
                     descricao_vaga = df_vagas[df_vagas['id_vaga'] == id_vaga]['descricao'].values[0]
                     
                     with col2:
                         with st.expander("Detalhes da vaga selecionada", expanded=True):
                             st.write(descricao_vaga)
-            else:
+            else: # Lógica para inserir a descrição da vaga manualmente.
                 descricao_vaga = st.text_area("Descrição detalhada da vaga:", height=200,
                                              placeholder="Insira os requisitos, responsabilidades e detalhes da vaga...")
-            
-            # Passo 5: Configurações e geração
             if descricao_vaga:
                 st.divider()
                 num_candidatos = st.slider("Número de candidatos para recomendar:", 
@@ -287,23 +266,27 @@ def main():
                     with st.status("Processando recomendações...", expanded=True) as status:                        
                         instancia = SistemaRecomendacao()
 
+                        # Carrega o modelo de recomendação pré-treinado.
                         instancia._carregar_modelo(
                             df_candidatos=df_candidatos,
                             model_path="modelo_final.keras"
                         )
+                        # Utiliza a IA para melhorar/refinar a descrição da vaga fornecida.
                         descricao_vaga_melhorada = inteligencia_st.melhorar_descricao_vaga(descricao_vaga)
                         print(f"descrição nova :{descricao_vaga_melhorada}")
                         st.write("📊 Calculando similaridades...")
+                        # Gera as recomendações com base na descrição da vaga melhorada.
                         resultados = instancia.recomendar_candidatos(
                             descricao_vaga=descricao_vaga_melhorada,
                             top_n=num_candidatos
                         )
                         
                         st.write("🧹 Processando resultados...")
+                        # Preenche valores nulos em colunas específicas para melhor apresentação.
                         resultados.fillna({
                             'senioridade': 'Não especificado',
                             'nome_candidato': 'Nome não informado',
-                            'cv_texto_pt': 'Currículo não disponível'
+                            'cv_texto_pt': 'Currículo não disponível' # Assume 'cv_texto_pt' como uma coluna possível.
                         }, inplace=True)
                         
                         status.update(label="✅ Processo completo!", state="complete", expanded=False)
@@ -312,6 +295,7 @@ def main():
                     st.divider()
                     st.subheader("Resultados da Recomendação")
 
+                    # Ajusta as colunas exibidas se a fonte de dados for interna.
                     if fonte_dados == RANKING_DADOS_INTERNOS:
                         resultados = resultados[['id_candidato', 'nome_candidato', 'curriculo', 'similaridade']]
                     
@@ -320,6 +304,7 @@ def main():
                     st.dataframe(
                         resultados,                  
                         column_config={
+                            # Configura a coluna 'similaridade' para ser exibida como uma barra de progresso.
                             "similaridade": st.column_config.ProgressColumn(
                                 format="%.2f",
                                 min_value=0,
@@ -333,71 +318,99 @@ def main():
 
     with tab_documentacao:
         st.markdown('''
-        ### Documentação do Módulo de Ranking de Vagas
+        ### Guia de Uso: Módulo de Ranking de Vagas
 
-        Este módulo foi projetado para auxiliar na priorização de candidatos para vagas específicas,
-        utilizando diferentes fontes de dados. Ele permite gerar um ranking de candidatos
-        com base em uma descrição de vaga e um conjunto de dados de candidatos.
+        Este módulo é uma ferramenta interativa projetada para auxiliar no processo de recrutamento,
+        permitindo a classificação de candidatos para vagas de emprego específicas.
 
         #### Funcionalidades Principais (Aba "Sistema"):
 
-        *   **Ranking com Dados Externos:**
-            *   **Template de Candidatos:** Oferece um botão para baixar um template Excel (`template_candidatos.xlsx`) que serve como modelo para a inserção dos dados dos candidatos. O template já vem com formatação e filtros no cabeçalho para facilitar o uso.
-            *   Permite o upload de uma planilha Excel (.xlsx) contendo os dados dos candidatos.
-            *   **Validação de Dados:** Ao carregar o arquivo, o sistema verifica:
-                *   Se as colunas obrigatórias (`id_candidato`, `nome_candidato`, `senioridade`, `curriculo`) estão presentes.
-                *   Se a planilha não está vazia.
-                *   Se há dados nulos nas colunas obrigatórias, exibindo um resumo dos campos faltantes.
-            *   Exibe os dados dos candidatos carregados de forma paginada para fácil visualização.
-        *   **Ranking com Dados Internos:**
-            *   Previsto para utilizar dados de candidatos provenientes de sistemas internos da organização.
-            *   (Funcionalidade a ser implementada ou detalhada conforme o sistema interno).
+        1.  **Seleção da Fonte de Dados dos Candidatos:**
+            *   O usuário pode escolher entre:
+                *   **"Dados Externos (Upload Excel)"**: Para carregar candidatos a partir de uma planilha.
+                *   **"Dados Internos (Sistema)"**: Para utilizar uma base de candidatos já existente no sistema.
+
+        2.  **Para "Dados Externos (Upload Excel)":**
+            *   **Download do Template:**
+                *   Um botão "📥 Baixar Template" permite o download de um arquivo Excel (`template_candidatos.xlsx`).
+                *   Este template possui as colunas: `id_candidato`, `nome_candidato`, `senioridade`, `curriculo`, `informacoes_adicionais`, com formatação e filtros pré-definidos.
+            *   **Upload da Planilha:**
+                *   O usuário pode carregar sua planilha Excel preenchida através do widget "Carregar planilha de candidatos".
+            *   **Validações Automáticas:**
+                *   **Colunas Obrigatórias:** Verifica se as colunas `id_candidato`, `nome_candidato`, `senioridade`, `curriculo` estão presentes.
+                *   **Planilha Vazia:** Alerta se a planilha carregada não contiver dados.
+                *   **Dados Nulos:** Verifica se há valores nulos nas colunas obrigatórias e, em caso positivo, exibe uma tabela com a contagem de nulos por campo, interrompendo o processo.
+            *   **Visualização dos Dados:**
+                *   Após o carregamento e validação, os dados dos candidatos são exibidos em uma tabela paginada (10 itens por página).
+
+        3.  **Para "Dados Internos (Sistema)":**
+            *   **Carregamento Automático:**
+                *   Os dados são carregados de uma fonte interna (atualmente, `dataset/applicants.json`).
+                *   O sistema processa esses dados: normaliza campos JSON, consolida informações relevantes (de várias colunas como `cv_pt`, `informacoes_profissionais_titulo_profissional`, etc.) na coluna `curriculo`, e renomeia a coluna `infos_basicas_nome` para `nome_candidato`.
+            *   **Visualização dos Dados:**
+                *   Uma prévia dos primeiros 10 candidatos da base interna pode ser visualizada em uma seção expansível ("Visualizar base interna").
+
+        4.  **Definição das Informações da Vaga (após carregar os candidatos):**
+            *   O usuário escolhe como fornecer os detalhes da vaga através da seção "Quais as informações da vaga?":
+                *   **"Escrever descrição manual"**: Um campo de texto permite inserir livremente a descrição, requisitos e responsabilidades da vaga.
+                *   **"Selecionar vaga existente"**:
+                    *   Carrega uma lista de vagas pré-definidas (de `dataset/vagas.json`).
+                    *   O usuário seleciona uma vaga da lista (formato: `ID - Título`).
+                    *   Os detalhes (descrição completa) da vaga selecionada são exibidos automaticamente em uma seção expansível ("Detalhes da vaga selecionada").
+
+        5.  **Geração das Recomendações:**
+            *   **Número de Candidatos:** Um controle deslizante ("Número de candidatos para recomendar:") permite definir quantos dos melhores candidatos devem ser retornados (entre 1 e 10).
+            *   **Processamento:** Ao clicar em "Gerar Recomendações":
+                *   O sistema utiliza um modelo de recomendação pré-treinado (`modelo_final.keras`).
+                *   A descrição da vaga fornecida é otimizada por uma IA para melhorar a precisão da busca.
+                *   As similaridades entre os currículos dos candidatos e a descrição da vaga otimizada são calculadas.
+            *   **Exibição dos Resultados:**
+                *   Os candidatos recomendados são exibidos em uma tabela.
+                *   A coluna "Similaridade" mostra o quão aderente o candidato é à vaga, representada por uma barra de progresso (0 a 1).
+                *   Se a fonte de dados for "Internos", as colunas exibidas são `id_candidato`, `nome_candidato`, `curriculo`, `similaridade`. Para dados externos, outras colunas originais da planilha podem ser mantidas.
 
         #### Como Usar o Módulo:
 
         1.  **Acesse a Aba "Sistema":**
-            *   No menu lateral, navegue até "📊 Ranking Vagas".
-            *   A interface principal do módulo será exibida com duas abas: "Sistema" e "Documentação". Certifique-se de estar na aba "Sistema" para interagir com as funcionalidades.
+            *   A interface principal do módulo é exibida na aba "Sistema".
 
-        2.  **Selecione o Tipo de Ranking (na aba "Sistema"):**
-            *   Você verá duas opções de rádio: "Ranking com Dados Externos" e "Ranking com Dados Internos".
-            *   Escolha a opção desejada.
+        2.  **Selecione a Fonte de Dados dos Candidatos:**
+            *   Escolha entre "Dados Externos (Upload Excel)" ou "Dados Internos (Sistema)".
 
-        3.  **Para "Ranking com Dados Externos":**
-            *   **Baixar Template (Opcional, mas Recomendado):**
-                *   Clique em "Baixar Arquivo Excel" na seção "Template de Candidatos" para obter o modelo formatado.
-                *   Preencha este template com os dados dos seus candidatos.
-            *   **Upload do Arquivo Excel:**
-                *   Na seção "Carregue sua Planilha de Candidatos", clique no botão "Escolha um arquivo Excel".
-                *   Selecione o arquivo `.xlsx` do seu computador que contém os dados dos candidatos.
-                *   **Observação:** O arquivo deve conter uma aba chamada `candidatos` e as colunas obrigatórias: `id_candidato`, `nome_candidato`, `senioridade`, `curriculo`. O sistema realizará validações e informará sobre quaisquer problemas.
-            *   **Visualização e Validação dos Dados:**
-                *   Se o arquivo for carregado com sucesso e passar nas validações iniciais, uma mensagem de sucesso será exibida.
-                *   Após o upload bem-sucedido, uma prévia dos dados dos candidatos ("Dados dos Candidatos") será exibida em uma tabela.
-                *   Se houver muitos candidatos, a tabela será paginada (10 itens por página). Use os botões "⬅️ Anterior" e "Próxima ➡️" para navegar pelas páginas.
-            *   **Descrição da Vaga:**
-                *   No campo de texto abaixo de "Descrição da Vaga", insira uma descrição detalhada da vaga. Quanto mais informações você fornecer (habilidades, experiência, responsabilidades), mais preciso poderá ser o ranking (embora o modelo atual seja uma simulação).
-            *   **Número de Candidatos para o Ranking:**
-                *   Utilize o controle deslizante ("Selecione o número de candidatos que deseja retornar:") para definir quantos dos melhores candidatos você deseja ver no ranking final. O valor padrão é calculado automaticamente como um percentual do total de candidatos carregados (20% para >50, 10% para >100, 5% para >200, 2% para >500 candidatos).
-            *   **Gerar Ranking:**
-                *   Após preencher a descrição da vaga e selecionar o número de candidatos, clique no botão "Criar Ranking".
-            *   **Visualizar Resultado:**
-                *   O sistema processará os dados e exibirá o "Ranking Gerado" em uma nova tabela, mostrando os candidatos selecionados e suas respectivas pontuações/ranking.
+        3.  **Se "Dados Externos (Upload Excel)" for selecionado:**
+            *   **Baixe o Template (Recomendado):** Clique em "📥 Baixar Template" e preencha a planilha com os dados dos candidatos. As colunas `id_candidato`, `nome_candidato`, `senioridade` e `curriculo` são obrigatórias e não devem conter valores nulos.
+            *   **Carregue sua Planilha:** Utilize o widget "Carregar planilha de candidatos" para fazer o upload do arquivo `.xlsx`.
+            *   **Aguarde a Validação:** O sistema verificará o arquivo. Se houver erros (colunas obrigatórias faltantes, planilha vazia, dados nulos nas colunas obrigatórias), mensagens de alerta serão exibidas e o processo pode ser interrompido.
+            *   **Visualize os Dados:** Se o carregamento for bem-sucedido, os dados dos candidatos aparecerão em uma tabela paginada. Use os botões "⬅️ Anterior" e "Próxima ➡️" para navegar.
 
-        4.  **Para "Ranking com Dados Internos":**
-            *   Esta opção utiliza um conjunto de dados de candidatos internos (atualmente simulados com dados fixos) para gerar o ranking.
-            *   **Descrição da Vaga:**
-                *   No campo de texto abaixo de "Descrição da Vaga", insira uma descrição detalhada da vaga.
-            *   **Número de Candidatos para o Ranking:**
-                *   Utilize o controle deslizante ("Selecione o número de candidatos que deseja retornar:") para definir quantos dos melhores candidatos você deseja ver no ranking final. O valor padrão é 10, com um máximo de 100 (baseado nos dados simulados disponíveis).
-            *   **Gerar Ranking:**
-                *   Após preencher a descrição da vaga e selecionar o número de candidatos, clique no botão "Criar Ranking".
-            *   **Visualizar Resultado:**
-                *   O sistema processará os dados e exibirá o "Ranking Gerado" em uma nova tabela, mostrando os candidatos selecionados e suas respectivas pontuações/ranking.
+        4.  **Se "Dados Internos (Sistema)" for selecionado:**
+            *   Os dados dos candidatos serão carregados automaticamente da base interna.
+            *   Você pode expandir a seção "Visualizar base interna" para ver uma amostra dos dados carregados.
 
-        #### Observações Adicionais:        
-        *   Certifique-se de que o arquivo Excel carregado esteja no formato correto e contenha os dados esperados para evitar erros. O sistema tentará validar a estrutura do arquivo e a presença de dados nulos.
+        5.  **Forneça as Informações da Vaga:**
+            *   Esta seção ("Quais as informações da vaga?") aparecerá após os dados dos candidatos serem carregados com sucesso.
+            *   **Opção 1: "Escrever descrição manual"**
+                *   Digite os detalhes da vaga (requisitos, responsabilidades, etc.) no campo "Descrição detalhada da vaga:".
+            *   **Opção 2: "Selecionar vaga existente"**
+                *   Escolha uma vaga na lista suspensa "Selecione uma vaga:".
+                *   Os detalhes da vaga selecionada serão exibidos na seção expansível "Detalhes da vaga selecionada" para sua conferência.
+
+        6.  **Configure e Gere as Recomendações:**
+            *   Certifique-se de que uma descrição de vaga válida (manual ou selecionada) esteja presente.
+            *   Ajuste o "Número de candidatos para recomendar:" usando o controle deslizante (slider) para definir quantos dos melhores candidatos você deseja ver (entre 1 e 10).
+            *   Clique no botão "Gerar Recomendações".
+
+        7.  **Analise os Resultados:**
+            *   Aguarde o processamento. Uma mensagem de status indicará o progresso.
+            *   Após a conclusão, uma tabela com os "Resultados da Recomendação" será exibida.
+            *   A coluna "Similaridade" indica a compatibilidade do candidato com a vaga, onde valores mais próximos de 1 representam maior aderência.
+
+        #### Observações Adicionais:
+        *   **Qualidade da Descrição da Vaga:** Para obter recomendações mais precisas, forneça uma descrição de vaga detalhada e clara, especialmente ao usar o modo manual. A IA tentará otimizar a descrição, mas uma boa base é fundamental.
+        *   **Validação de Dados Externos:** É crucial que a planilha Excel siga o formato do template e que os dados nas colunas obrigatórias (`id_candidato`, `nome_candidato`, `senioridade`, `curriculo`) estejam preenchidos corretamente e sem valores nulos para evitar interrupções no processo.
+        *   **Modelo de Recomendação:** O sistema utiliza um modelo de aprendizado profundo para calcular a similaridade semântica entre os currículos dos candidatos e a descrição da vaga.
+        *   **Processamento de Dados Internos:** Ao usar dados internos, o sistema realiza uma etapa de pré-processamento para consolidar diversas informações textuais dos candidatos em um único campo de "currículo" para análise.
     ''')
 
 if __name__ == "__main__":
-    main()
+    main()           
