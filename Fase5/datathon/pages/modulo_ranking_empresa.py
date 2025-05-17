@@ -1,62 +1,50 @@
-import modelo
 import pandas as pd
 import streamlit as st
 import pandas as pd
 import numpy as np
 from io import BytesIO
 import re
-import nltk
 import json
-import tensorflow as tf
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
-
+from modelo import SistemaRecomendacao
+import apoio_tech as inteligencia_st
 # Configurações iniciais
 st.title('Ranking de Vagas')
-nltk.download('stopwords')
-nltk.download('punkt')
 
-class SistemaRecomendacao:
-    def __init__(self, df_candidatos, df_vagas, model_path):
-        self.df_candidatos = df_candidatos
-        self.df_vagas = df_vagas
-        self.model = tf.keras.models.load_model(model_path)
-        self.vectorizer, self.embeddings_cv = self._preparar_dados()
+
+
+def extrair_json_colunas(df, colunas):
+    """
+    Extrai colunas específicas de um DataFrame e converte para JSON.
     
-    def _preprocessar_texto(self, text):
-        stop_words = stopwords.words('portuguese')
-        text = re.sub(r'\d+', '', str(text).lower())
-        text = re.sub(r'[^\w\s]', '', text)
-        tokens = word_tokenize(text)
-        return ' '.join([t for t in tokens if t not in stop_words and len(t) > 2])
+    Parâmetros:
+    df (DataFrame): O DataFrame de entrada.
+    colunas (list): Lista de nomes de colunas a serem extraídas.
     
-    def _preparar_dados(self):
-        vectorizer = TfidfVectorizer(
-            max_features=5000,
-            ngram_range=(1,2),
-            preprocessor=self._preprocessar_texto
-        )
-        textos_cv = self.df_candidatos['cv_texto_pt'].apply(self._preprocessar_texto)
-        embeddings = vectorizer.fit_transform(textos_cv)
-        return vectorizer, embeddings
-    
-    def _processar_vaga(self, descricao_vaga):
-        processed = self._preprocessar_texto(descricao_vaga)
-        return self.vectorizer.transform([processed])
-    
-    def recomendar_candidatos(self, descricao_vaga, top_n=5):
-        embedding_vaga = self._processar_vaga(descricao_vaga)
-        similaridades = cosine_similarity(embedding_vaga, self.embeddings_cv).flatten()
-        top_indices = similaridades.argsort()[-top_n:][::-1]
+    Retorna:
+    str: String Dataframe atualizado com as colunas extraídas.
+    """
+    try:
         
-        resultados = self.df_candidatos.iloc[top_indices].copy()
-        resultados['similaridade'] = similaridades[top_indices]
-        return resultados.sort_values('similaridade', ascending=False)
+        for coluna in colunas:
+        # Normaliza o JSON da coluna e cria um novo DataFrame
+            df_normalizado = pd.json_normalize(df[coluna])
+
+            # Define um prefixo para as novas colunas para evitar conflitos
+            df_normalizado = df_normalizado.add_prefix(f'{coluna}_')
+
+            # Remove a coluna original com JSON
+            df = df.drop(coluna, axis=1)
+
+            # Concatena o DataFrame original com as novas colunas normalizadas
+            df = pd.concat([df, df_normalizado], axis=1)            
+        return df
+    except KeyError as e:
+        print(f"Erro: Coluna não encontrada - {e}. Verifique os nomes das colunas.")
+        KeyError(e)
 
 @st.cache_data
 def carregar_vagas():
+    print("Carregando vagas...")
     with open('dataset/vagas.json', 'r', encoding='utf-8') as f:
         vagas = json.load(f)
     
@@ -70,7 +58,7 @@ def carregar_vagas():
     return pd.DataFrame(dados_vagas)
 
 def main():
-    st.title('Sistema de Recomendação de Candidatos')
+    st.subheader('Sistema de Recomendação de Candidatos')
     
     RANKING_DADOS_EXTERNOS = "Dados Externos (Upload Excel)"
     RANKING_DADOS_INTERNOS = "Dados Internos (Sistema)"
@@ -88,12 +76,10 @@ def main():
         )
         
         df_candidatos = None
-        
-        col_download, col_upload  = st.columns(2,border=True)
-
     
         # Passo 2: Carregamento dos candidatos
         if fonte_dados == RANKING_DADOS_EXTERNOS:
+            col_download, col_upload  = st.columns(2,border=True)
             with col_download:
                 st.markdown("## Carregar Candidatos via Excel")
                 
@@ -210,20 +196,33 @@ def main():
                 st.subheader("Carregar candidatos do sistema interno")  # Dados Internos
                 try:
                     @st.cache_data
-                    def carregar_dados_internos():
-                        with open('dataset/applicants.json', 'r', encoding='utf-8') as f:
-                            candidatos = json.load(f)
+                    def carregar_dados_internos():                        
+                        #with open('dataset/applicants.json', 'r', encoding='utf-8') as f:
+                        #    candidatos = json.load(f)
                         
-                        dados = []
-                        for id_cand, info in candidatos.items():
-                            dados.append({
-                                'id_candidato': id_cand,
-                                'nome_candidato': info.get('infos_basicas', {}).get('nome', '') or \
-                                    info.get('informacoes_pessoais', {}).get('nome', 'Nome não informado'),
-                                'senioridade': info.get('informacoes_profissionais', {}).get('nivel_profissional', 'Não especificado'),
-                                'cv_texto_pt': info.get('cv_pt', 'Currículo não disponível')
-                            })
-                        return pd.DataFrame(dados)
+                        #dados = []
+                        #for id_cand, info in candidatos.items():
+                        #    dados.append({
+                        #        'id_candidato': id_cand,
+                        #        'nome_candidato': info.get('infos_basicas', {}).get('nome', '') or \
+                        #            info.get('informacoes_pessoais', {}).get('nome', 'Nome não informado'),
+                        #        'senioridade': info.get('informacoes_profissionais', {}).get('nivel_profissional', 'Não especificado'),
+                        #        'curriculo': info.get('cv_pt', 'Currículo não disponível')
+                        #        #'curriculo': info.get('cv_pt', 'Currículo não disponível')
+                        #    })
+                        colunas_importantes = ["cv_pt", "cv_en", "informacoes_profissionais_titulo_profissional", "informacoes_profissionais_area_atuacao", "informacoes_profissionais_conhecimentos_tecnicos", "informacoes_profissionais_certificacoes", "informacoes_profissionais_outras_certificacoes", "informacoes_profissionais_nivel_profissional", "informacoes_profissionais_qualificacoes", "informacoes_profissionais_experiencias", "formacao_e_idiomas_nivel_academico", "formacao_e_idiomas_nivel_ingles", "formacao_e_idiomas_nivel_espanhol", "formacao_e_idiomas_outro_idioma", "formacao_e_idiomas_cursos", "formacao_e_idiomas_outro_curso"]
+                        df_applicants = pd.read_json("dataset/applicants.json", encoding="utf-8")
+                        df_applicants = df_applicants.T                        
+                        colunas_applicants = df_applicants.columns.drop(['cv_pt','cv_en'])                        
+                        df_applicants = extrair_json_colunas(df_applicants, list(colunas_applicants))                        
+                        df_applicants.reset_index(names="id_candidato", inplace=True)
+                        df_applicants['curriculo'] = df_applicants[colunas_importantes].fillna('').agg(' '.join, axis=1)
+                        df_applicants.rename(columns={'infos_basicas_nome':'nome_candidato'}, inplace=True)
+
+                        df_applicants = df_applicants[["id_candidato","nome_candidato", "curriculo"]]
+                        df_applicants.dropna(axis=0, how='any', inplace=True)
+                        print("PAssei aqui")
+                        return pd.DataFrame(df_applicants)
                     
                     with st.spinner("Carregando base de candidatos..."):
                         df_candidatos = carregar_dados_internos()
@@ -254,6 +253,7 @@ def main():
             
             # Passo 4: Entrada dos dados da vaga
             if metodo_descricao == MODO_SELECAO_VAGA:
+                print("Carregando vagas...")
                 df_vagas = carregar_vagas()
                 vagas_lista = [f"{row['id_vaga']} - {row['titulo']}" for _, row in df_vagas.iterrows()]
                 
@@ -284,17 +284,18 @@ def main():
                                          min(1, 10))
                 
                 if st.button("Gerar Recomendações", type="primary"):
-                    with st.status("Processando recomendações...", expanded=True) as status:
-                        st.write("🔧 Inicializando modelo...")
-                        sistema = SistemaRecomendacao(
+                    with st.status("Processando recomendações...", expanded=True) as status:                        
+                        instancia = SistemaRecomendacao()
+
+                        instancia._carregar_modelo(
                             df_candidatos=df_candidatos,
-                            df_vagas=pd.DataFrame(),  # Não usado no processamento
-                            model_path="fiap-tech-challenge-pos-tech-data-analytics/Fase5/datathon/modelo_final.keras"
+                            model_path="modelo_final.keras"
                         )
-                        
+                        descricao_vaga_melhorada = inteligencia_st.melhorar_descricao_vaga(descricao_vaga)
+                        print(f"descrição nova :{descricao_vaga_melhorada}")
                         st.write("📊 Calculando similaridades...")
-                        resultados = sistema.recomendar_candidatos(
-                            descricao_vaga=descricao_vaga,
+                        resultados = instancia.recomendar_candidatos(
+                            descricao_vaga=descricao_vaga_melhorada,
                             top_n=num_candidatos
                         )
                         
@@ -310,8 +311,14 @@ def main():
                     
                     st.divider()
                     st.subheader("Resultados da Recomendação")
+
+                    if fonte_dados == RANKING_DADOS_INTERNOS:
+                        resultados = resultados[['id_candidato', 'nome_candidato', 'curriculo', 'similaridade']]
+                    
+                    
+
                     st.dataframe(
-                        resultados[['id_candidato', 'nome_candidato', 'senioridade','cv_texto_pt', 'similaridade']],
+                        resultados,                  
                         column_config={
                             "similaridade": st.column_config.ProgressColumn(
                                 format="%.2f",

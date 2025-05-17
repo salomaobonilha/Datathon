@@ -1,52 +1,53 @@
+import nltk
+import tensorflow as tf
+import re
 import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
 
 
 
-def gerar_ranking_vagas(df, descricao_vaga, tipo_ranking, numero_candidatos):
-    # Aqui você pode adicionar a lógica para gerar o ranking com base no DataFrame e na descrição da vaga
-    # Por exemplo, você pode usar técnicas de processamento de linguagem natural (NLP) para comparar a descrição da vaga com os dados do DataFrame
+class SistemaRecomendacao:
+    def __init__(self):
+        nltk.download('punkt_tab')
+        nltk.download('stopwords')
+        nltk.download('punkt')        
+
+    def _carregar_modelo(self, df_candidatos, model_path):        
+        self.df_candidatos = df_candidatos        
+        self.model = tf.keras.models.load_model(model_path)
+        self.vectorizer, self.embeddings_cv = self._preparar_dados()
     
-    print("Gerando ranking com base na descrição da vaga...")
-    print(f"Descrição da vaga: {descricao_vaga}")
-    print(f"DataFrame: {df.head()}")
-    print(f"Método de ranking: {tipo_ranking}")
-    print(f"Número de candidatos: {numero_candidatos}")
-    # Aqui você pode adicionar a lógica para gerar o ranking com base no DataFrame e na descrição da vaga
-
-
-    #Mockando modelo de ranking
-    # Adicionando uma coluna de pontuação aleatória para simular o ranking
-    df_resultado_ranking = df.copy()
-    df_tamanho = df_resultado_ranking.shape[0]
-    df_resultado_ranking['ranking'] = pd.Series(range(1, df_tamanho + 1))   
-    df_resultado_ranking['score'] = pd.Series(range(1, df_tamanho + 1)).apply(lambda x: 100 - x)  # Simulando uma pontuação decrescente
-    df_resultado_ranking[['id_candidato', 'nome_candidato','senioridade']]
-
-    return df_resultado_ranking.head(numero_candidatos)
-
-def gerar_ranking_vagas(descricao_vaga, numero_candidatos):    
+    def _preprocessar_texto(self, text):
+        stop_words = stopwords.words('portuguese')
+        text = re.sub(r'\d+', '', str(text).lower())
+        text = re.sub(r'[^\w\s]', '', text)
+        tokens = word_tokenize(text)
+        return ' '.join([t for t in tokens if t not in stop_words and len(t) > 2])
     
-    print("Gerando ranking com base na descrição da vaga...")
-    print(f"Descrição da vaga: {descricao_vaga}")    
-    print(f"Número de candidatos: {numero_candidatos}")
-    # Aqui você pode adicionar a lógica para gerar o ranking com base no DataFrame e na descrição da vaga
+    def _preparar_dados(self):
+        vectorizer = TfidfVectorizer(
+            max_features=5000,
+            ngram_range=(1,2),
+            preprocessor=self._preprocessar_texto
+        )
 
-
-    #Mockando modelo de ranking
-    # Adicionando uma coluna de pontuação aleatória para simular o ranking
-    df_resultado_ranking = pd.DataFrame({
-        'id_candidato': [1, 2, 3, 4, 5],
-        'nome_candidato': ['Candidato A', 'Candidato B', 'Candidato C', 'Candidato D', 'Candidato E'],
-        'senioridade': ['Júnior', 'Pleno', 'Sênior', 'Estágio', 'Especialista'],
-        'ranking': [1, 2, 3, 4, 5],
-        'score': [100, 90, 80, 70, 60]
-    })
-
-
-
-    df_tamanho = df_resultado_ranking.shape[0]
-    df_resultado_ranking['ranking'] = pd.Series(range(1, df_tamanho + 1))   
-    df_resultado_ranking['score'] = pd.Series(range(1, df_tamanho + 1)).apply(lambda x: 100 - x)  # Simulando uma pontuação decrescente
-    df_resultado_ranking[['id_candidato', 'nome_candidato','senioridade']]
-
-    return df_resultado_ranking.head(numero_candidatos)
+        print(self.df_candidatos.columns)
+        textos_cv = self.df_candidatos['curriculo'].apply(self._preprocessar_texto)
+        embeddings = vectorizer.fit_transform(textos_cv)
+        return vectorizer, embeddings
+    
+    def _processar_vaga(self, descricao_vaga):
+        processed = self._preprocessar_texto(descricao_vaga)
+        return self.vectorizer.transform([processed])
+    
+    def recomendar_candidatos(self, descricao_vaga, top_n=5):
+        embedding_vaga = self._processar_vaga(descricao_vaga)
+        similaridades = cosine_similarity(embedding_vaga, self.embeddings_cv).flatten()
+        top_indices = similaridades.argsort()[-top_n:][::-1]
+        
+        resultados = self.df_candidatos.iloc[top_indices].copy()
+        resultados['similaridade'] = similaridades[top_indices]
+        return resultados.sort_values('similaridade', ascending=False)

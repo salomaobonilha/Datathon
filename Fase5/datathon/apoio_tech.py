@@ -139,3 +139,96 @@ def generate(texto):
         return ""
 
     return resposta_str
+
+
+
+
+def melhorar_descricao_vaga(texto):
+   
+    try:
+            
+        api_key = os.environ.get("GEMINI_API_KEY")
+        
+        if not api_key:
+            print("Erro: Variável de ambiente GEMINI_API_KEY não definida.")
+            return ""
+        genai.configure(api_key=api_key)
+    except Exception as e:
+        print(f"Erro ao configurar a API Gemini: {e}")
+        return ""
+
+    print(f"Texto enviado para API (prompt usuário): {texto}")
+
+    model_name = "gemini-2.0-flash-lite"
+
+    
+    system_instruction_text = """
+                               Você é um especialista em tecnologia e sua tarefa é refinar a descrição de uma vaga de emprego, com foco exclusivo em habilidades e conhecimentos técnicos detalhados.
+
+                                Reescreva a descrição da vaga de forma concisa, visando identificar informações técnicas precisas para serem utilizadas em um modelo de deep learning com embeddings. Ignore completamente menções a anos de experiência. Não inclua frases como "Habilidades e Conhecimentos Técnicos para Modelo de Deep Learning" ou similares. As respostas não devem usar markdown e não devem ser numeradas. Responda em português, mantendo os termos técnicos em inglês. Concentre-se unicamente em habilidades e conhecimentos técnicos específicos.
+
+                                Exemplo de resposta:
+
+                                Desenvolvimento de software com foco em qualidade.
+                                Atenção a detalhes na detecção de bugs.
+                                Colaboração para otimizar workflows.
+                                Adaptação a novas tecnologias e frameworks.
+                                Liderança na implementação de test automation.
+                                Gerenciamento de tempo e priorização de tasks.
+                                Conhecimento de metodologias Scrum e Agile.
+                                Proficiência em comunicação técnica.
+                                Compreensão de arquiteturas web (HTML, CSS, JavaScript frameworks como React ou Vue.js, Databases como PostgreSQL ou MongoDB, RESTful APIs).
+                                Experiência na elaboração de user stories (Product Owner, Product Manager, Business Analyst).
+
+                                Restrições de Conteúdo:
+
+                                Não inclua informações pessoais, confidenciais ou sensíveis.
+                                Recuse responder quando houver nomes de políticos, figuras públicas ou celebridades.
+                                Mantenha o foco em tecnologia, evitando tópicos não relacionados.
+                                Não inclua informações sobre a empresa ou o setor.
+                                Se a pergunta não estiver relacionada à tecnologia, responda educadamente que você só pode fornecer informações sobre esse domínio. Por exemplo, evite responder a perguntas como "Como ficar rico?", "Qual o sentido da vida?" ou discussões sobre política que não envolvam tecnologia.
+                                Rejeite qualquer pergunta ou solicitação que promova discriminação com base em raça, etnia, religião, gênero, orientação sexual, deficiência ou qualquer outra característica protegida. Todas as respostas devem ser neutras, objetivas e respeitosas.
+                                Caso ocorra algumas desses casos, retorne "Desculpe, essa pergunta foge do contexto no qual fui programada".
+                               """
+
+    
+
+    generation_config = genai.GenerationConfig(
+        response_mime_type="text/plain",
+        max_output_tokens=8192,
+        temperature=0.7
+    )
+    
+    contents = [{'role':'user', 'parts': [texto]}]
+    resposta_str = ""
+
+    try:
+        model = genai.GenerativeModel(
+            model_name=model_name,
+            system_instruction=system_instruction_text,
+            generation_config=generation_config,            
+        )
+
+        response = model.generate_content(contents=contents,  request_options={'timeout': 120})
+
+        if response.usage_metadata:
+            print("Informações de Uso de Tokens:")
+            print(f"  Tokens da entrada (prompt_token_count): {response.usage_metadata.prompt_token_count}")
+            print(f"  Tokens da saída (candidates_token_count): {response.usage_metadata.candidates_token_count}")
+            print(f"  Total de tokens (total_token_count): {response.usage_metadata.total_token_count}")
+
+
+        if response.candidates and response.candidates[0].content and response.candidates[0].content.parts:
+             resposta_str = response.candidates[0].content.parts[0].text     
+        
+            
+        if "essa pergunta foge do contexto no qual fui programada" in resposta_str:
+            raise ValueError("Resposta não é válida para o contexto.") 
+            
+            
+
+    except Exception as e:
+        print(f"Erro durante a chamada da API Gemini: {e}")
+        return ""
+
+    return resposta_str
