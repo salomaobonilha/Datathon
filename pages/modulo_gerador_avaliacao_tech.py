@@ -243,7 +243,7 @@ def exibir_quiz():
 
     with tab_sistema:
         
-        diretorio_script = f"{os.path.basename(__file__)}/../dataset"        
+        diretorio_script = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "dataset"))        
         base_profissoes = carregar_lista_json(os.path.join(diretorio_script, "profissoes.json"))
         base_linguagens = carregar_lista_json(os.path.join(diretorio_script, "linguagens.json"))
         base_senioridades = carregar_lista_json(os.path.join(diretorio_script, "senioridades.json"))        
