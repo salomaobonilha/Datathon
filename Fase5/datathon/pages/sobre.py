@@ -44,21 +44,22 @@ creators_data = [
     },
     {
         "name": "Ana Carolina da Silva Carriel",
+        "funcao": "Especialista de risco de crédito",
         "email": "carolcarriel2009@hotmail.com",
-        "linkedin": "https://www.linkedin.com/in/anacarolinadasilvacarriel/", 
-        "image_url": "assets/default-woman.jpg"
+        "linkedin": "https://www.linkedin.com/in/ana-carolina-carriel-42335a204/", 
+        "image_url": "assets/ana.jpg"
     },
     {
         "name": "Salomão José Freitas Bonilha",
         "email": "sabonilha@hotmail.com",
-        "linkedin": "https://www.linkedin.com/in/salomaobonilha/", 
-        "image_url": "assets/default-man.jpg"
+        "linkedin": "https://www.linkedin.com/in/salomao-bonilha/", 
+        "image_url": "assets/salomao.jpg"
     },
     {
         "name": "Gabriel Madeira Menacho",
         "email": "menacho.sjc@gmail.com",
         "linkedin": "https://www.linkedin.com/in/gabrielmenacho/",
-        "image_url": "assets/default-man.jpg" 
+        "image_url": "assets/gabriel.jpg" 
     }
 ]
 
