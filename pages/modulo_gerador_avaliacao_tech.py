@@ -1,7 +1,7 @@
 import re
 import os
 import json
-import markdown
+from markdown import markdown 
 import pandas as pd
 from fpdf import FPDF
 import streamlit as st
