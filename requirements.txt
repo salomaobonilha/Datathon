@@ -52,6 +52,7 @@ matplotlib-inline==0.1.7
 multitasking==0.0.11
 narwhals==1.36.0
 nest-asyncio==1.6.0
+nltk==3.9.1
 numpy==1.26.4
 packaging==24.1
 pandas==2.2.3
