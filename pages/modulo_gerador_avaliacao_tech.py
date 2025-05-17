@@ -940,30 +940,47 @@ def exibir_quiz():
         st.markdown("""
         Esta aplicação permite gerar e realizar avaliações técnicas personalizadas com base em descrições de vagas ou campos estruturados.
 
-        **Funcionalidades Principais:**
+        ### Funcionalidades Principais:
 
-        *   **Geração de Perguntas:** Cria perguntas técnicas relevantes para uma vaga específica usando a API Generativa do Google (Gemini).
-        *   **Configuração Flexível:** Permite definir a vaga usando campos (Profissão, Conhecimentos, Senioridade), texto livre ou selecionando vagas pré-definidas (futuro).
-        *   **Opções Avançadas:**
-            *   Definir o número de perguntas padrão.
-            *   Incluir uma pergunta "desafio" (problema/solução) com peso diferenciado na pontuação.
-            *   Permitir ou não exemplos de código nas respostas esperadas.
-        *   **Interface de Avaliação:** Apresenta as perguntas geradas com as respostas esperadas e botões para o avaliador classificar a resposta do candidato.
-        *   **Cálculo de Resultado:** Calcula a pontuação final com base nas avaliações, aplicando peso dobrado para a pergunta desafio (se respondida de forma incompleta ou completa) e indica aprovação ou reprovação.
-        *   **Exportação em PDF:** Gera dois arquivos PDF: um com as perguntas (para o candidato) e outro com as perguntas e respostas esperadas (para o avaliador).
+        *   **Geração de Perguntas com IA:** Cria perguntas técnicas relevantes para uma vaga específica utilizando a API Generativa do Google (Gemini).
+        *   **Configuração Flexível da Vaga:**
+            *   **Usar Campos Estruturados:** Defina a profissão, conhecimentos/tecnologias e nível de senioridade utilizando listas pré-definidas ou inserindo valores personalizados. Detalhes adicionais da vaga também podem ser incluídos.
+            *   **Descrever a Vaga Livremente:** Insira uma descrição textual completa da vaga, e a IA gerará perguntas com base nesse texto.
+            *   **Selecionar Vagas Existentes:** Carregue e visualize detalhes de vagas pré-definidas (armazenadas em `vagas.json`). Esta opção preenche automaticamente campos informativos como título da vaga, senioridade, áreas de atuação e um resumo das atividades.
+                *   **Nota:** Atualmente, a geração direta de perguntas no modo "Selecionar Vagas" está desabilitada (o botão "Gerar Perguntas" não fica ativo). Utilize este modo para consulta rápida e, se desejar gerar perguntas, copie os detalhes relevantes e utilize os modos "Campos Estruturados" ou "Texto Livre".
+        *   **Opções de Geração de Perguntas:**
+            *   Definir a **quantidade de perguntas padrão** desejadas (entre 3 e um máximo de 30, ou 20 se a opção de código nas respostas estiver ativa).
+            *   Opcionalmente, incluir uma **pergunta "desafio"** (formato problema/solução), que possui um peso maior na avaliação final.
+            *   Especificar se as **respostas esperadas devem incluir exemplos de código**. Ativar esta opção ajusta o limite máximo de perguntas padrão para 20.
+        *   **Interface de Avaliação Interativa:**
+            *   Após a geração, as perguntas e suas respectivas respostas esperadas são exibidas.
+            *   O avaliador pode classificar a resposta de um candidato para cada pergunta utilizando botões intuitivos: "Não sabe a resposta", "Errou a resposta", "Resposta incompleta", "Resposta completa".
+        *   **Cálculo de Resultados e Feedback:**
+            *   Com base nas classificações, o sistema calcula uma **pontuação final** para o candidato.
+            *   A pergunta "desafio", se utilizada e respondida como "Resposta incompleta" ou "Resposta completa", tem sua pontuação dobrada, refletindo sua maior complexidade.
+            *   Apresenta um **status final** (Aprovado/Reprovado) com base em um limiar de aprovação (atualmente 65%).
+        *   **Exportação em PDF:**
+            *   Permite gerar e baixar dois tipos de arquivos PDF: um contendo apenas as **perguntas** (ideal para ser enviado ao candidato) e outro contendo as **perguntas e as respostas esperadas** (para uso do avaliador).
 
-        **Como Usar:**
+        ### Como Usar:
 
         1.  **Configure a Vaga:**
-            *   Escolha o método de entrada: "Usar Campos Estruturados", "Descrever a Vaga Livremente" ou "Selecionar Vagas".
-            *   Se usar campos ou texto livre, preencha as informações. Use a opção "Outro (digitar)" se necessário.
-            *   A opção "Selecionar Vagas" ainda não está implementada.
-            *   (Opcional) Adicione detalhes adicionais no campo correspondente (para métodos estruturado/livre).
+            *   Na seção "Configure a Vaga", escolha o método de entrada:
+                *   **"Usar Campos Estruturados":** Selecione ou digite a profissão, conhecimentos e senioridade. Utilize a opção "Outro (digitar)" para valores não listados. Você pode adicionar "Detalhes Adicionais da Vaga" no campo de texto opcional.
+                *   **"Descrever a Vaga Livremente":** Escreva uma descrição detalhada da vaga no campo de texto fornecido.
+                *   **"Selecionar Vagas":** Escolha uma vaga na lista suspensa. Os detalhes da vaga (título, senioridade, conhecimentos, descrição resumida) serão exibidos em campos não editáveis.
+                    *   **Lembre-se:** O botão "Gerar Perguntas da Avaliação" fica desabilitado neste modo. Para gerar perguntas baseadas em uma vaga pré-definida, observe os detalhes carregados e insira-os manualmente nos modos "Usar Campos Estruturados" ou "Descrever a Vaga Livremente".
+
         2.  **Defina as Opções de Geração:**
-            *   Ajuste o número de "Perguntas Padrão".
-            *   Marque "Incluir Pergunta Desafio?" se desejar.
-            *   Marque "Permitir Código nas Respostas?" se relevante.
-        3.  **Gere as Perguntas:** Clique no botão "Gerar Perguntas da Avaliação". Aguarde a API processar a solicitação. (Este botão estará desabilitado se "Selecionar Vagas" estiver ativo).
+            *   Na seção "Opções de Geração":
+                *   Ajuste a **"Quantidade de perguntas padrão"** usando o controle deslizante. O limite máximo (30 ou 20) é ajustado automaticamente se a opção "Permitir Código nas Respostas?" for alterada.
+                *   Marque **"Incluir Pergunta Desafio?"** se desejar adicionar uma pergunta de maior complexidade com pontuação diferenciada.
+                *   Marque **"Permitir Código nas Respostas?"** se as respostas esperadas devem conter exemplos de código. Ativar esta opção limita o número de perguntas padrão a 20.
+
+        3.  **Gere as Perguntas:**
+            *   Clique no botão **"Gerar Perguntas da Avaliação"**. (Este botão estará desabilitado se o modo "Selecionar Vagas" estiver ativo).
+            *   Aguarde enquanto a API processa a solicitação e gera as perguntas.
+
         4.  **Realize a Avaliação:**
             *   As perguntas e respostas esperadas serão exibidas.
             *   Para cada pergunta, avalie a resposta do candidato usando os botões:
@@ -971,12 +988,16 @@ def exibir_quiz():
                 *   **Errou a resposta:** (-1 ponto) A resposta está incorreta.
                 *   **Resposta incompleta:** (0.5 pontos) A resposta está parcialmente correta ou falta profundidade.
                 *   **Resposta completa:** (1 ponto) A resposta está correta e completa.
+
         5.  **Calcule o Resultado:** Após avaliar todas as perguntas desejadas, clique em "Calcular Resultado Final".
             *   A pontuação total, o percentual e o status (Aprovado/Reprovado) serão exibidos.
             *   **Importante:** A pergunta desafio, se incluída e respondida como "Incompleta" ou "Completa", tem sua pontuação (0.5 ou 1) dobrada (para 1 ou 2) no cálculo final, aumentando seu peso na avaliação.
-        6.  **Gere os PDFs:** Use os botões "Gerar PDF das Perguntas" e "Gerar PDF das Respostas" para baixar os documentos.
 
-        **Tecnologias Utilizadas:**
+        6.  **Gere os PDFs:** Use os botões "Gerar PDF das Perguntas" e "Gerar PDF das Respostas" para baixar os documentos.
+            *   Clique primeiro no botão "Gerar PDF..." correspondente.
+            *   Após o processamento, o botão "⬇️ Baixar PDF..." ficará disponível.
+
+        ### Tecnologias Utilizadas:
 
         *   **Streamlit:** Para a interface web interativa.
         *   **Google Gemini API:** Para a geração de conteúdo (perguntas e respostas).
