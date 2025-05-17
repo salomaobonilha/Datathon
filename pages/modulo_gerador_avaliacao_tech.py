@@ -59,6 +59,15 @@ def carregar_lista_json(caminho_arquivo):
         st.error(f"Erro inesperado ao carregar {caminho_arquivo}: {e}")
         return []
 
+def carregar_vagas_json(diretorio_script):
+    try:
+        with open(os.path.join(diretorio_script, 'vagas.json'), 'r', encoding='utf-8') as f:
+            vagas = json.load(f)
+        return vagas
+    except FileNotFoundError:
+        st.error("Arquivo 'vagas.json' não encontrado.")
+        return {}
+    
 def carregar_dados_api(prompt_api):
     """
     Chama a API Generativa e tenta analisar a resposta JSON.
@@ -239,10 +248,14 @@ def exibir_quiz():
         base_linguagens = carregar_lista_json(os.path.join(diretorio_script, "linguagens.json"))
         base_senioridades = carregar_lista_json(os.path.join(diretorio_script, "senioridades.json"))        
 
+        vagas = carregar_vagas_json(diretorio_script)
         opcoes_profissoes = base_profissoes + [OPCAO_OUTRO_ROTULO]
         opcoes_linguagens = base_linguagens + [OPCAO_OUTRO_ROTULO]
         opcoes_senioridades = base_senioridades + [OPCAO_OUTRO_ROTULO]
-
+        profissao_final = st.session_state.get("profissao_selecionada", "").strip()
+        senioridade_final = st.session_state.get("senioridade_selecionada", "").strip()
+        conhecimentos_finais = st.session_state.get("conhecimentos_atuais", [])
+        conhecimentos_str = ", ".join(conhecimentos_finais).strip() if conhecimentos_finais else ""
         st.subheader("Configure a Vaga")
 
         if 'metodo_entrada' not in st.session_state: st.session_state.metodo_entrada = METODO_ENTRADA_ESTRUTURADO
@@ -255,6 +268,13 @@ def exibir_quiz():
         )
 
         if st.session_state.metodo_entrada == METODO_ENTRADA_ESTRUTURADO:
+
+            st.session_state.profissao_selecionada = None
+            st.session_state.senioridade_selecionada = None
+            st.session_state.linguagens_selecionadas = []
+            st.session_state.detalhes_opcionais = ""
+            st.session_state.conhecimentos_atuais = []
+
             
             if 'profissao_selecionada' not in st.session_state: st.session_state.profissao_selecionada = opcoes_profissoes[0] if opcoes_profissoes else None            
             if 'profissao_personalizada' not in st.session_state: st.session_state.profissao_personalizada = ""
@@ -290,6 +310,25 @@ def exibir_quiz():
                 help="Informe aqui outros requisitos, responsabilidades ou contexto relevante sobre a vaga."
             )
 
+
+            conhecimentos_estruturados = list(st.session_state.linguagens_selecionadas)
+            if OPCAO_OUTRO_ROTULO in conhecimentos_estruturados:
+                conhecimentos_estruturados.remove(OPCAO_OUTRO_ROTULO)
+                conhecimentos_estruturados += [c.strip() for c in st.session_state.linguagens_personalizadas.split(",") if c.strip()]
+
+            #Atualiza os campos esperados pelo quiz
+            st.session_state.conhecimentos_atuais = conhecimentos_estruturados
+            st.session_state.profissao_atual = (
+                st.session_state.profissao_personalizada
+                if st.session_state.profissao_selecionada == OPCAO_OUTRO_ROTULO
+                else st.session_state.profissao_selecionada
+            )
+            st.session_state.senioridade_atual = (
+                st.session_state.senioridade_personalizada
+                if st.session_state.senioridade_selecionada == OPCAO_OUTRO_ROTULO
+                else st.session_state.senioridade_selecionada
+            )
+
         elif st.session_state.metodo_entrada == METODO_ENTRADA_TEXTO_LIVRE:
             st.session_state.descricao_vaga = st.text_area(
                 "Descreva a vaga desejada:",
@@ -299,8 +338,164 @@ def exibir_quiz():
                 key='text_area_vaga'
             )
 
-        elif st.session_state.metodo_entrada == METODO_ENTRADA_SELECIONAR_VAGA:
-            st.info("(Ainda não implementado)")
+        elif st.session_state.metodo_entrada == METODO_ENTRADA_SELECIONAR_VAGA:            
+            def limpar_nome_vaga(nome_vaga):
+                # Remove números no início do título se estiverem seguidos por texto
+                nome_vaga = re.sub(r'^\d+\s*', '', nome_vaga)
+
+                # Quebra o restante em partes usando "-" e "/"
+                partes = re.split(r'[-/]', nome_vaga)
+                partes = [p.strip() for p in partes if p.strip()]
+
+                # Elimina partes que são apenas números
+                partes_validas = [p for p in partes if not p.isdigit()]
+
+                if not partes_validas:
+                    return "Vaga Sem Nome"
+
+                # Usa a primeira parte textual como nome base
+                nome_final = partes_validas[0]
+
+                # Descarta nomes muito curtos ou inválidos
+                if nome_final.isdigit() or len(re.sub(r'[^a-zA-Z]', '', nome_final)) < 3:
+                    return "Vaga Sem Nome"
+
+                return nome_final.title()
+
+
+            #Linguagens conhecidas para checagem no texto
+            linguagens_conhecidas = [
+                'Python', 'Java', 'JavaScript', 'TypeScript', 'C#', 'C++', 'Ruby', 'Go', 'PHP',
+                'Kotlin', 'Swift', 'Scala', 'Perl', 'ABAP', 'SAP', 'SQL', 'NoSQL', 'HTML', 'CSS', 'R', 'React', 'Angular', '.NET'
+            ]
+            
+            # Construir nomes únicos e amigáveis
+            nomes_formatados = {}
+            nomes_usados = set()
+
+            for id_vaga, vaga in vagas.items():
+                nome_base = limpar_nome_vaga(vaga['informacoes_basicas']['titulo_vaga'])
+                #Eliminar vagas sem nome válido
+                if nome_base == "Vaga Sem Nome":
+                    continue  
+                nome_final = nome_base
+
+                if nome_final in nomes_usados:
+                    #Texto da vaga (atividades + competências)
+                    descricao = (
+                        vaga['perfil_vaga'].get('principais_atividades', '') + " " +
+                        vaga['perfil_vaga'].get('competencia_tecnicas_e_comportamentais', '')
+                    ).lower()
+
+                    #Palavras-chave para identificar o foco da vaga
+                    palavras_chave = [
+                        "redes", "suporte", "infraestrutura", "devops", "cloud", "dados", "back-end",
+                        "front-end", "fullstack", "segurança", "java", "python", "atendimento", "linux", "windows"
+                    ]
+
+                    #Encontra a primeira palavra-chave presente na descrição
+                    termo_extra = next((p for p in palavras_chave if p in descricao), None)
+
+                    #Se não achar, tenta usar a senioridade ou parte do ID
+                    sufixo = termo_extra or vaga['perfil_vaga'].get('nivel profissional', '') or id_vaga[:5]
+                    nome_final = f"{nome_base} ({sufixo})"
+
+                nomes_usados.add(nome_final)
+                nomes_formatados[id_vaga] = nome_final
+
+            if 'ultima_interacao_vaga' not in st.session_state:
+                st.session_state.ultima_interacao_vaga = 'nome'
+
+            if 'vaga_selecionada_id' not in st.session_state:
+                st.session_state.vaga_selecionada_id = list(nomes_formatados.keys())[0]
+
+            # Callbacks para saber qual selectbox foi usado
+            def ao_selecionar_id():
+                st.session_state.vaga_selecionada_id = st.session_state.select_id_vaga
+                st.session_state.ultima_interacao_vaga = 'id'
+
+            def ao_selecionar_nome():
+                st.session_state.vaga_selecionada_id = st.session_state.select_nome_vaga
+                st.session_state.ultima_interacao_vaga = 'nome'
+
+            # Selectbox por ID
+            st.selectbox(
+                "Selecione diretamente por ID da vaga",
+                options=list(nomes_formatados.keys()),
+                index=list(nomes_formatados.keys()).index(st.session_state.vaga_selecionada_id),
+                key="select_id_vaga",
+                on_change=ao_selecionar_id
+            )
+
+            # Selectbox por nome (usando ID como valor, mas format_func para mostrar o nome)
+            st.selectbox(
+                "Selecione uma vaga",
+                options=list(nomes_formatados.keys()),
+                format_func=lambda x: nomes_formatados[x],
+                index=list(nomes_formatados.keys()).index(st.session_state.vaga_selecionada_id),
+                key="select_nome_vaga",
+                on_change=ao_selecionar_nome
+            )
+
+            #Preencher os campos com as informações da vaga selecionada
+            vaga_selecionada = vagas[st.session_state.vaga_selecionada_id]
+
+            #Para preencher os campos automaticamente
+            st.session_state.profissao_selecionada = vaga_selecionada['informacoes_basicas']['titulo_vaga']
+            st.session_state.senioridade_selecionada = vaga_selecionada['perfil_vaga'].get('nivel profissional', '')
+            st.session_state.linguagens_selecionadas = [vaga_selecionada['perfil_vaga']['areas_atuacao']]
+            st.session_state.detalhes_opcionais = vaga_selecionada['perfil_vaga']['principais_atividades']
+
+            #Juntar textos relevantes
+            texto_vaga = (
+                vaga_selecionada['perfil_vaga'].get('principais_atividades', '') + " " +
+                vaga_selecionada['perfil_vaga'].get('competencia_tecnicas_e_comportamentais', '')
+            ).lower()
+
+            #Procurar por linguagens na descrição
+            linguagens_identificadas = []
+            for linguagem in linguagens_conhecidas:
+                if re.search(rf'\b{re.escape(linguagem.lower())}\b', texto_vaga):
+                    linguagens_identificadas.append(linguagem)
+
+            #Tenta pegar os conhecimentos diretamente; se vazio, usa os identificados
+            conhecimentos_extraidos = vaga_selecionada['perfil_vaga'].get('conhecimentos', [])
+            if not conhecimentos_extraidos:
+                conhecimentos_extraidos = linguagens_identificadas
+
+            #Garante que pelo menos um conhecimento seja atribuído
+            if not conhecimentos_extraidos:
+                conhecimentos_extraidos = ["Tecnologias não especificadas"]
+
+            st.session_state.conhecimentos_atuais = conhecimentos_extraidos
+
+            #Resumir a descrição da vaga (primeiros 300 caracteres)
+            descricao_completa = vaga_selecionada['perfil_vaga'].get('principais_atividades', '')
+            descricao_resumida = descricao_completa[:300] + ("..." if len(descricao_completa) > 300 else "")
+
+            #Exibir a descrição dentro de uma caixa
+            st.text_area(
+                "Descrição da Vaga ",
+                value=descricao_resumida,
+                height=150,
+                disabled=True  
+            )
+
+            #Exibir Conhecimentos e Senioridade lado a lado em uma caixa pequena
+            coluna1, coluna2 = st.columns(2)
+            with coluna1:
+                st.text_input(
+                    "Conhecimentos",
+                    value=", ".join(st.session_state.conhecimentos_atuais) if st.session_state.conhecimentos_atuais else "Nenhum",
+                    disabled=True
+                )
+
+            with coluna2:
+                st.text_input(
+                    "Senioridade",
+                    value=st.session_state.senioridade_selecionada or "Não informado",
+                    disabled=True
+                )
 
         st.markdown("---")
         st.subheader("Opções de Geração")
@@ -343,7 +538,7 @@ def exibir_quiz():
             )
             if st.session_state.check_codigo_resposta:
                 st.warning("Limite de 20 perguntas padrão quando o código é permitido nas respostas.")
-
+        #botao_gerar_desabilitado = False
         botao_gerar_desabilitado = st.session_state.metodo_entrada == METODO_ENTRADA_SELECIONAR_VAGA
 
         if st.button("Gerar Perguntas da Avaliação", type="primary", disabled=botao_gerar_desabilitado):
@@ -357,6 +552,24 @@ def exibir_quiz():
 
             
             if st.session_state.metodo_entrada == METODO_ENTRADA_ESTRUTURADO:
+                pass 
+
+            elif st.session_state.metodo_entrada == METODO_ENTRADA_SELECIONAR_VAGA:
+                profissao_final = st.session_state.profissao_selecionada
+                senioridade_final = st.session_state.senioridade_selecionada
+                conhecimentos_finais = st.session_state.conhecimentos_atuais if 'conhecimentos_atuais' in st.session_state else []
+                conhecimentos_str = ", ".join(conhecimentos_finais)
+                texto_detalhes_opcionais = st.session_state.detalhes_opcionais.strip() if 'detalhes_opcionais' in st.session_state else ""
+
+            if not profissao_final: st.warning("A vaga não possui título."); entrada_valida = False
+            if not senioridade_final: st.warning("A vaga não possui nível de senioridade."); entrada_valida = False
+            if not conhecimentos_str: st.warning("A vaga não possui conhecimentos listados."); entrada_valida = False
+
+            if entrada_valida:
+                informacao_vaga = f"para a vaga {profissao_final} {senioridade_final}, com conhecimento em {conhecimentos_str}"
+                if texto_detalhes_opcionais:
+                    informacao_vaga += f". Incluir também perguntas sobre: {texto_detalhes_opcionais}"
+
             
                 profissao_final = st.session_state.profissao_personalizada.strip() if st.session_state.profissao_selecionada == OPCAO_OUTRO_ROTULO else st.session_state.profissao_selecionada
                 senioridade_final = st.session_state.senioridade_personalizada.strip() if st.session_state.senioridade_selecionada == OPCAO_OUTRO_ROTULO else st.session_state.senioridade_selecionada

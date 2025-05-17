@@ -221,7 +221,7 @@ def main():
 
                         df_applicants = df_applicants[["id_candidato","nome_candidato", "curriculo"]]
                         df_applicants.dropna(axis=0, how='any', inplace=True)
-                        print("PAssei aqui")
+                        
                         return pd.DataFrame(df_applicants)
                     
                     with st.spinner("Carregando base de candidatos..."):
