@@ -20,6 +20,7 @@ debugpy==1.8.6
 decorator==5.1.1
 executing==2.1.0
 fonttools==4.54.1
+fpdf==1.7.2
 frozendict==2.4.5
 gitdb==4.0.12
 GitPython==3.1.44
@@ -98,6 +99,7 @@ streamlit==1.44.1
 tensorflow==2.19.0
 tabulate==0.9.0
 tenacity==9.0.0
+tensorflow==2.19.0
 termcolor==2.5.0
 threadpoolctl==3.5.0
 toml==0.10.2
@@ -107,6 +109,7 @@ traitlets==5.14.3
 typing-inspection==0.4.0
 typing_extensions==4.13.2
 tzdata==2024.2
+xlsxwriter==3.2.3
 urllib3==2.2.3
 watchdog==6.0.0
 wcwidth==0.2.13
