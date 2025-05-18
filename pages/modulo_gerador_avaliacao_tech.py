@@ -173,7 +173,7 @@ def gerar_pdf(titulo, itens_pdf):
         st.error(f"Erro ao definir a fonte padrão para o PDF: {e}")
 
     pdf_doc.add_page()
-    markdown_parser = markdown.Markdown(extensions=['fenced_code', 'codehilite'])
+    markdown_parser = markdown.Markdown(extensions=['fenced_code'])
 
     for item_pdf in itens_pdf:
         try:
@@ -211,7 +211,7 @@ def gerar_pdf(titulo, itens_pdf):
              pdf_doc.ln(5)
 
     try:        
-        return pdf_doc.output(dest='S')
+        return pdf_doc.output(dest='B')
     except Exception as e:
         st.error(f"Erro ao gerar o arquivo PDF final: {e}")
         return b""
