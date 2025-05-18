@@ -538,8 +538,7 @@ def exibir_quiz():
             )
             if st.session_state.check_codigo_resposta:
                 st.warning("Limite de 20 perguntas padrão quando o código é permitido nas respostas.")
-        #botao_gerar_desabilitado = False
-        botao_gerar_desabilitado = st.session_state.metodo_entrada == METODO_ENTRADA_SELECIONAR_VAGA
+        botao_gerar_desabilitado = False        
 
         if st.button("Gerar Perguntas da Avaliação", type="primary", disabled=botao_gerar_desabilitado):
             numero_perguntas_padrao = st.session_state.numero_perguntas_desejadas
