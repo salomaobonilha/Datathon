@@ -211,7 +211,7 @@ def gerar_pdf(titulo, itens_pdf):
              pdf_doc.ln(5)
 
     try:        
-        return pdf_doc.output(dest='S')
+        return pdf_doc.output(dest='S').encode('latin-1')
     except Exception as e:
         st.error(f"Erro ao gerar o arquivo PDF final: {e}")
         return b""
