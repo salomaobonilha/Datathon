@@ -38,6 +38,19 @@ def extrair_json_colunas(df, colunas):
         # Captura erro se uma coluna especificada não existir no DataFrame.
         print(f"Erro: Coluna não encontrada - {e}. Verifique os nomes das colunas.")
         KeyError(e)
+def anular_campos_vazio(campo):
+    campo = str(campo)   
+
+    if campo == 'nan':
+        return None
+    
+    if campo != None:
+        campo = campo.strip()
+        
+    if campo ==  "":
+        return None
+    
+    return campo
 
 @st.cache_data # Cacheia o resultado desta função para otimizar o carregamento.
 def carregar_vagas():
@@ -193,12 +206,18 @@ def main():
                         df_applicants = pd.read_json("dataset/applicants.json", encoding="utf-8")
                         df_applicants = df_applicants.T # Transpõe o DataFrame (IDs de candidatos como linhas).
                         # Seleciona colunas que contêm JSON e precisam ser normalizadas, excluindo CVs.
+                        df_applicants['cv_pt'] = df_applicants['cv_pt'].apply(anular_campos_vazio)
+                        df_applicants = df_applicants.dropna(subset=['cv_pt'])
+                        
                         colunas_applicants = df_applicants.columns.drop(['cv_pt','cv_en'])                        
                         # Normaliza as colunas JSON.
                         df_applicants = extrair_json_colunas(df_applicants, list(colunas_applicants))                        
                         df_applicants.reset_index(names="id_candidato", inplace=True)
                         # Cria uma coluna 'curriculo' unindo o conteúdo das 'colunas_importantes'.
                         # Valores nulos são preenchidos com string vazia antes da agregação.
+
+                        
+                        
                         df_applicants['curriculo'] = df_applicants[colunas_importantes].fillna('').agg(' '.join, axis=1)
                         df_applicants.rename(columns={'infos_basicas_nome':'nome_candidato'}, inplace=True)
 
