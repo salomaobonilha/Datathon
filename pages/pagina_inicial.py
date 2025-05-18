@@ -1,5 +1,5 @@
 import streamlit as st
-st.title("Pagina Inicial")
+st.title("Página Inicial")
 
 
 st.markdown(
