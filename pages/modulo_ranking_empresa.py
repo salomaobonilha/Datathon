@@ -73,10 +73,10 @@ def main():
         )
         
         df_candidatos = None
-        col_download, col_upload  = st.columns(2,border=True)
+        
         # Lógica para carregar dados de candidatos externos via upload de Excel.
         if fonte_dados == RANKING_DADOS_EXTERNOS:
-            #col_download, col_upload  = st.columns(2,border=True)
+            col_download, col_upload  = st.columns(2,border=True)
             with col_download:
                 st.markdown("## Carregar Candidatos via Excel")
                 
