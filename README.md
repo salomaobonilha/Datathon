@@ -8,6 +8,10 @@ Pode incluir também o desenvolvimento de aplicações web interativas com Strea
 Aqui você encontrará os notebooks, scripts, modelos e quaisquer outros artefatos 
 relevantes gerados durante a competição.
 
+## Desenho das funcionalidades
+![desenho-funcionalidades](assets/desenho-funcionalidades.png)
+
+
 ## Como Rodar Localmente
 
 Para executar este projeto em seu ambiente local, siga os passos abaixo. 
