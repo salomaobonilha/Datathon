@@ -73,6 +73,7 @@ def main():
         )
         
         df_candidatos = None
+        col_download, col_upload  = st.columns(2,border=True)
         # Lógica para carregar dados de candidatos externos via upload de Excel.
         if fonte_dados == RANKING_DADOS_EXTERNOS:
             col_download, col_upload  = st.columns(2,border=True)
@@ -149,7 +150,7 @@ def main():
                     df_campos_faltantes.columns = ['Campo', 'Quantidade de Nulos']
 
                     st.dataframe(df_campos_faltantes, hide_index=True, use_container_width=True)
-                    #st.stop() 
+                    st.stop() 
                 st.success("Arquivo carregado com sucesso!")
                 st.toast(f"{len(df_candidatos)} candidatos carregados", icon="👥")
                 st.markdown("### Dados dos Candidatos")
