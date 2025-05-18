@@ -149,7 +149,7 @@ def main():
                     df_campos_faltantes.columns = ['Campo', 'Quantidade de Nulos']
 
                     st.dataframe(df_campos_faltantes, hide_index=True, use_container_width=True)
-                    st.stop() 
+                    #st.stop() 
                 st.success("Arquivo carregado com sucesso!")
                 st.toast(f"{len(df_candidatos)} candidatos carregados", icon="👥")
                 st.markdown("### Dados dos Candidatos")
