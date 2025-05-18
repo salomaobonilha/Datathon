@@ -330,6 +330,7 @@ def exibir_quiz():
             )
 
         elif st.session_state.metodo_entrada == METODO_ENTRADA_TEXTO_LIVRE:
+            
             st.session_state.descricao_vaga = st.text_area(
                 "Descreva a vaga desejada:",
                 value=st.session_state.descricao_vaga,
@@ -337,6 +338,7 @@ def exibir_quiz():
                 height=200,
                 key='text_area_vaga'
             )
+            
 
         elif st.session_state.metodo_entrada == METODO_ENTRADA_SELECIONAR_VAGA:            
             def limpar_nome_vaga(nome_vaga):
@@ -548,6 +550,10 @@ def exibir_quiz():
             entrada_valida = True            
             informacao_vaga = ""
             texto_detalhes_opcionais = ""
+            st.session_state.pdf_perguntas_data = None
+            st.session_state.pdf_respostas_data = None
+            st.session_state.pdf_perguntas_pronto = False
+            st.session_state.pdf_respostas_pronto = False
 
             
             if st.session_state.metodo_entrada == METODO_ENTRADA_ESTRUTURADO:
@@ -591,13 +597,19 @@ def exibir_quiz():
                         informacao_vaga += f". incluir tambem perguntas sobre: {texto_detalhes_opcionais}"
 
 
-            elif st.session_state.metodo_entrada == METODO_ENTRADA_TEXTO_LIVRE:                 
+            if st.session_state.metodo_entrada == METODO_ENTRADA_TEXTO_LIVRE:                 
                 descricao_vaga_texto = st.session_state.descricao_vaga.strip()
-                if not descricao_vaga_texto: st.warning("Descreva a vaga no campo de texto."); entrada_valida = False                
-                elif len(descricao_vaga_texto) < 20: st.warning("Descrição da vaga muito curta."); entrada_valida = False
+                if not descricao_vaga_texto: 
+                    st.warning("Descreva a vaga no campo de texto."); 
+                    entrada_valida = False
+                    st.stop()                
+                elif len(descricao_vaga_texto) < 20: 
+                    st.warning("Descrição da vaga muito curta."); entrada_valida = False
+                    st.stop()                
+                         
 
-                if entrada_valida:
-                    informacao_vaga = f"com base na seguinte descrição de vaga: '{descricao_vaga_texto}'"
+                if descricao_vaga_texto is not None or descricao_vaga_texto != "":                                        
+                    informacao_vaga = f"com base na seguinte descrição de vaga: '{descricao_vaga_texto}'"                
 
 
             
@@ -622,8 +634,7 @@ def exibir_quiz():
                         f"Siga o formato JSON especificado nas instruções do sistema."
                     )
                     total_perguntas_esperado = numero_perguntas_padrao
-
-                print(f"Prompt enviado para API: {prompt_para_api}")
+                
                 perguntas_carregadas = carregar_dados_api(prompt_para_api)
 
                 if perguntas_carregadas is not None:

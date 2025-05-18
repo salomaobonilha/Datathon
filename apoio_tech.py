@@ -83,6 +83,7 @@ def generate(texto):
                                 *   coloque em negritos nas respostas o destaque que deve ser levado em consideração.
                                 *   Quando for preciso enumerar itens, use números (1, 2, 3) ou letras (a, b, c) quebre a linha entre os itens.
                                 *   na quebra de linha use duas quebras de linha (ex: \n\n) para separar os itens.
+                                *   cuidado para não querar o json com \# coloque o scape corretamente
                                 *   Gerar perguntas e respostas em utf-8
                                 *   A saída deve ser **APENAS** o array JSON válido, sem texto adicional ou marcadores ```json.
                                 *   Retorne em order de nivel das perguntas (basico, intermediário, avançado).
