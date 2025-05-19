@@ -175,11 +175,12 @@ def gerar_pdf(titulo, itens_pdf):
         try:
             pdf_doc.set_font(pdf_doc.font_family, 'B', 11)
             texto_prefixo = item_pdf.get('prefix', '')
+            print(texto_prefixo)
             if '**' in texto_prefixo or '*' in texto_prefixo or '`' in texto_prefixo:
                  html_prefixo = markdown_parser.convert(texto_prefixo)
-                 #html_prefixo = re.sub(r'(<pre.*?><code.*?>)(.*?)(</code></pre>)',
-                                      #lambda m: m.group(1) + m.group(2).replace('\n', '<br>\n') + m.group(3),
-                                      #html_prefixo, flags=re.DOTALL)
+                 html_prefixo = re.sub(r'(<pre.*?><code.*?>)(.*?)(</code></pre>)',
+                                      lambda m: m.group(1) + m.group(2).replace('\n', '<br>\n') + m.group(3),
+                                      html_prefixo, flags=re.DOTALL)
                  pdf_doc.write_html(html_prefixo)
             else:
                  pdf_doc.multi_cell(0, 7, texto_prefixo.encode('latin-1', 'replace').decode('latin-1'))
@@ -196,7 +197,7 @@ def gerar_pdf(titulo, itens_pdf):
             
             
             texto_item_html_com_br = re.sub(r'(<pre.*?><code.*?>)(.*?)(</code></pre>)',
-                                       lambda m: m.group(1) + m.group(2).replace('\n', '<br>\n') + m.group(3),
+                                      lambda m: m.group(1) + m.group(2).replace('\n', '<br>\n') + m.group(3),
                                        texto_item_html, flags=re.DOTALL)
 
             pdf_doc.write_html(texto_item_html_com_br) 
@@ -207,9 +208,11 @@ def gerar_pdf(titulo, itens_pdf):
              pdf_doc.ln(5)
 
     try:        
-        return pdf_doc.output(dest='B')
+        return pdf_doc.output()
     except Exception as e:
         st.error(f"Erro ao gerar o arquivo PDF final: {e}")
+        with open('arquivo.log', 'w') as f:
+            f.write(f"erro{e}")
         return b""
 
 
