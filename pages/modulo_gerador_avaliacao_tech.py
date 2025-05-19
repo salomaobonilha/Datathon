@@ -177,9 +177,9 @@ def gerar_pdf(titulo, itens_pdf):
             texto_prefixo = item_pdf.get('prefix', '')
             if '**' in texto_prefixo or '*' in texto_prefixo or '`' in texto_prefixo:
                  html_prefixo = markdown_parser.convert(texto_prefixo)
-                 html_prefixo = re.sub(r'(<pre.*?><code.*?>)(.*?)(</code></pre>)',
-                                      lambda m: m.group(1) + m.group(2).replace('\n', '<br>\n') + m.group(3),
-                                      html_prefixo, flags=re.DOTALL)
+                 #html_prefixo = re.sub(r'(<pre.*?><code.*?>)(.*?)(</code></pre>)',
+                                      #lambda m: m.group(1) + m.group(2).replace('\n', '<br>\n') + m.group(3),
+                                      #html_prefixo, flags=re.DOTALL)
                  pdf_doc.write_html(html_prefixo)
             else:
                  pdf_doc.multi_cell(0, 7, texto_prefixo.encode('latin-1', 'replace').decode('latin-1'))
@@ -199,10 +199,10 @@ def gerar_pdf(titulo, itens_pdf):
                                        lambda m: m.group(1) + m.group(2).replace('\n', '<br>\n') + m.group(3),
                                        texto_item_html, flags=re.DOTALL)
 
-            pdf_doc.write_html(texto_item_html) 
+            pdf_doc.write_html(texto_item_html_com_br) 
             pdf_doc.ln(5) 
         except Exception as e:
-             print(f"Erro ao escrever texto HTML no PDF: {e} - Texto MD: {texto_item_md[:50]}...")
+             print(f"Erro ao escrever texto HTML no PDF: {e} - Texto MD: {texto_item_md}...")
              pdf_doc.multi_cell(0, 7, texto_item_md.encode('latin-1', 'replace').decode('latin-1'))
              pdf_doc.ln(5)
 
