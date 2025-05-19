@@ -27,10 +27,6 @@ METODO_ENTRADA_TEXTO_LIVRE = "Descrever a Vaga Livremente"
 METODO_ENTRADA_SELECIONAR_VAGA = "Selecionar Vagas"
 TIPO_PERGUNTA_DESAFIO = "desafio"
 
-# O CSS para ocultar a navegação padrão e a geração do menu
-# são removidos para usar a navegação padrão do Streamlit.
-# App.gerar_menu_horizontal() # Esta linha não é mais necessária
-
 def carregar_lista_json(caminho_arquivo):
     """
     Carrega uma lista de strings de um arquivo JSON.
@@ -199,11 +195,11 @@ def gerar_pdf(titulo, itens_pdf):
             
             
             
-            texto_item_html_com_br = re.sub(r'(<pre.*?><code.*?>)(.*?)(</code></pre>)',
-                                       lambda m: m.group(1) + m.group(2).replace('\n', '<br>\n') + m.group(3),
-                                       texto_item_html, flags=re.DOTALL)
+            #texto_item_html_com_br = re.sub(r'(<pre.*?><code.*?>)(.*?)(</code></pre>)',
+            #                           lambda m: m.group(1) + m.group(2).replace('\n', '<br>\n') + m.group(3),
+            #                           texto_item_html, flags=re.DOTALL)
 
-            pdf_doc.write_html(texto_item_html_com_br) 
+            pdf_doc.write_html(texto_item_html) 
             pdf_doc.ln(5) 
         except Exception as e:
              print(f"Erro ao escrever texto HTML no PDF: {e} - Texto MD: {texto_item_md[:50]}...")
