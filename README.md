@@ -9,7 +9,7 @@ Aqui você encontrará os notebooks, scripts, modelos e quaisquer outros artefat
 relevantes gerados durante a competição.
 
 ## Desenho das funcionalidades
-![desenho-funcionalidades](assets/desenho-funcionalidades.png)
+![alt desenho-funcionalidades](assets/desenho-funcionalidades.png)
 
 
 ## Como Rodar Localmente
