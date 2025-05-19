@@ -195,9 +195,9 @@ def gerar_pdf(titulo, itens_pdf):
             
             
             
-            #texto_item_html_com_br = re.sub(r'(<pre.*?><code.*?>)(.*?)(</code></pre>)',
-            #                           lambda m: m.group(1) + m.group(2).replace('\n', '<br>\n') + m.group(3),
-            #                           texto_item_html, flags=re.DOTALL)
+            texto_item_html_com_br = re.sub(r'(<pre.*?><code.*?>)(.*?)(</code></pre>)',
+                                       lambda m: m.group(1) + m.group(2).replace('\n', '<br>\n') + m.group(3),
+                                       texto_item_html, flags=re.DOTALL)
 
             pdf_doc.write_html(texto_item_html) 
             pdf_doc.ln(5) 
