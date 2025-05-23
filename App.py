@@ -2,38 +2,12 @@ import streamlit as st
 
 st.set_page_config(layout="wide")
 # Logo apenas na sidebar expandida
-st.markdown("""
-<style>
-    /* Container principal da sidebar */
-    [data-testid="stSidebar"] > div:first-child {
-        display: flex;
-        flex-direction: column;
-        gap: 2rem;
-    }
-
-    /* Posicionamento do logo */
-    [data-testid="stSidebar"] img {
-        order: -1;  /* Coloca o logo primeiro */
-        align-self: flex-start;
-        margin-top: -30px;
-        margin-left: -15px;
-        max-width: 250px !important;
-    }
-
-    /* Ajuste do menu de navegação */
-    [data-testid="stNavigation"] {
-        margin-top: -20px !important;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-with st.sidebar:
-    st.image(
-        "assets/logo-transparente.png",
-        use_container_width=True,
-        output_format="PNG"
-    )
-
+st.logo(
+    image="assets/logo-transparente.png",  # Caminho para sua imagem principal
+    icon_image="assets/logo-icon.png",     # Caminho para versão ícone (opcional)
+    #link="https://seusite.com",            # Link clicável (opcional)
+    size="medium"                          # Tamanho: "small", "medium" ou "large"
+)
 
 pg = st.navigation([
     st.Page("pages/pagina_inicial.py", title="Página inicial", icon="🏠", default=True),
@@ -44,4 +18,4 @@ pg = st.navigation([
 ])
 pg.run()
 
-#st.write("<style> .stLogo { width: 248px; height: 172px; } </style>", unsafe_allow_html=True)
+st.write("<style> .stLogo { width: 248px; height: 172px; } </style>", unsafe_allow_html=True)
