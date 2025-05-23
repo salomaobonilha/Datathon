@@ -44,4 +44,4 @@ pg = st.navigation([
 ])
 pg.run()
 
-st.write("<style> .stLogo { width: 248px; height: 172px; } </style>", unsafe_allow_html=True)
+#st.write("<style> .stLogo { width: 248px; height: 172px; } </style>", unsafe_allow_html=True)
