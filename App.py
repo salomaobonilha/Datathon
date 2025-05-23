@@ -1,30 +1,14 @@
 import streamlit as st
 
 st.set_page_config(layout="wide")
-st.markdown("""
-<style>
-    /* Esconde o logo quando o menu está recolhido */
-    [data-testid="collapsedControl"] + .stLogo {
-        display: none !important;
-    }
-    
-    /* Ajusta o tamanho e posição do logo */
-    .stLogo {
-        width: 248px !important;
-        height: 172px !important;
-        position: absolute;
-        top: -40px;
-        left: -40px;
-        transition: opacity 0.3s;
-    }
-    
-    /* Suaviza a transição ao recolher/expandir */
-    [data-testid="stSidebar"] {
-        transition: width 0.3s;
-    }
-</style>
-""", unsafe_allow_html=True)
-st.logo("assets/logo-transparente.png")
+# Logo apenas na sidebar expandida
+with st.sidebar:
+    st.image(
+        "assets/logo-transparente.png",
+        use_column_width="always",
+        output_format="PNG",
+        width=200  # Ajuste conforme necessário
+    )
 
 pg = st.navigation([
     st.Page("pages/pagina_inicial.py", title="Página inicial", icon="🏠", default=True),
