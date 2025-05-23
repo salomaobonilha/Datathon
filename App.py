@@ -1,6 +1,29 @@
 import streamlit as st
 
 st.set_page_config(layout="wide")
+st.markdown("""
+<style>
+    /* Esconde o logo quando o menu está recolhido */
+    [data-testid="collapsedControl"] + .stLogo {
+        display: none !important;
+    }
+    
+    /* Ajusta o tamanho e posição do logo */
+    .stLogo {
+        width: 248px !important;
+        height: 172px !important;
+        position: absolute;
+        top: -40px;
+        left: -40px;
+        transition: opacity 0.3s;
+    }
+    
+    /* Suaviza a transição ao recolher/expandir */
+    [data-testid="stSidebar"] {
+        transition: width 0.3s;
+    }
+</style>
+""", unsafe_allow_html=True)
 st.logo("assets/logo-transparente.png")
 
 pg = st.navigation([
