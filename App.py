@@ -4,7 +4,7 @@ st.set_page_config(layout="wide")
 # Logo apenas na sidebar expandida
 st.logo(
     image="assets/logo-transparente.png",  # Caminho para sua imagem principal
-    icon_image="assets/imagem_2025-05-23_204643601 (1).png",     # Caminho para versão ícone (opcional)
+    icon_image=None,     # Caminho para versão ícone (opcional)
     #link="https://seusite.com",            # Link clicável (opcional)
     size="small"                          # Tamanho: "small", "medium" ou "large"
 )
