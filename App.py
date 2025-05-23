@@ -5,7 +5,7 @@ st.set_page_config(layout="wide")
 with st.sidebar:
     st.image(
         "assets/logo-transparente.png",
-        use_column_width="always",
+        use_container_width="always",
         output_format="PNG",
         width=200  # Ajuste conforme necessário
     )
