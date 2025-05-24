@@ -6,7 +6,7 @@ st.logo(
     image="assets/logo-transparente.png",  # Caminho para sua imagem principal
     icon_image="assets/logo-transparente (1).png",     # Caminho para versão ícone (opcional)
     #link="https://seusite.com",            # Link clicável (opcional)
-    size="small"                          # Tamanho: "small", "medium" ou "large"
+    size="large"                          # Tamanho: "small", "medium" ou "large"
 )
 
 pg = st.navigation([
