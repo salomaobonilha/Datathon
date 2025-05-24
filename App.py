@@ -3,7 +3,7 @@ import streamlit as st
 st.set_page_config(layout="wide")
 # Logo apenas na sidebar expandida
 st.logo(
-    image="assets/logo-transparente.png",  # Caminho para sua imagem principal
+    image="assets/logo-transparente (2).png",  # Caminho para sua imagem principal
     icon_image="assets/logo-transparente (1).png",     # Caminho para versão ícone (opcional)
     #link="https://seusite.com",            # Link clicável (opcional)
     size="large"                          # Tamanho: "small", "medium" ou "large"
